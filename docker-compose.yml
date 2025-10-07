@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: chatwell_pro
+      POSTGRES_USER: chatwell
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-chatwell_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwell -d chatwell_pro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main Application (app.chatwell.pro)
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://chatwell:${DB_PASSWORD:-chatwell_password}@postgres:5432/chatwell_pro
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: https://app.chatwell.pro
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-nextauth-secret}
+
+      # Email Configuration
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+      # WhatsApp API
+      WAHA_BASE_URL: ${WAHA_BASE_URL:-http://localhost:3001}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+
+      # App Configuration
+      APP_URL: https://app.chatwell.pro
+      API_URL: https://api.chatwell.pro
+      AUTH_URL: https://auth.chatwell.pro
+      HOOKS_URL: https://hooks.chatwell.pro
+      CDN_URL: https://cdn.chatwell.pro
+      STATUS_URL: https://status.chatwell.pro
+      DOCS_URL: https://docs.chatwell.pro
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Service (api.chatwell.pro)
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://chatwell:${DB_PASSWORD:-chatwell_password}@postgres:5432/chatwell_pro
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      REDIS_URL: redis://redis:6379
+      SERVICE_TYPE: api
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Webhook Service (hooks.chatwell.pro)
+  hooks:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://chatwell:${DB_PASSWORD:-chatwell_password}@postgres:5432/chatwell_pro
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      REDIS_URL: redis://redis:6379
+      SERVICE_TYPE: hooks
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Status/Health Service (status.chatwell.pro)
+  status:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://chatwell:${DB_PASSWORD:-chatwell_password}@postgres:5432/chatwell_pro
+      REDIS_URL: redis://redis:6379
+      SERVICE_TYPE: status
+    ports:
+      - "3003:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+      - api
+      - hooks
+      - status
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: chatwell_network
