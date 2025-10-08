@@ -49,15 +49,25 @@ export async function POST(request: NextRequest) {
       try {
         // Enviar email de teste usando as configurações fornecidas
         const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
+
+        // Configuração correta do transporte
+        const transportConfig: any = {
           host,
           port: parseInt(port),
-          secure: secure || true,
+          secure: secure === true, // true para 465 (SSL), false para 587 (STARTTLS)
           auth: {
             user: username,
             pass: password,
           },
-        });
+        };
+
+        // Para porta 587, usar STARTTLS
+        if (parseInt(port) === 587) {
+          transportConfig.requireTLS = true;
+          transportConfig.secure = false;
+        }
+
+        const transporter = nodemailer.createTransport(transportConfig);
 
         const from = from_name
           ? `"${from_name}" <${from_email}>`

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { SMTPConfigForm } from '@/components/smtp/smtp-config-form';
+import { WAHAConfigForm } from '@/components/waha/waha-config-form';
 
 export function SettingsForm() {
   const [loading, setLoading] = useState(true);
@@ -345,6 +346,11 @@ export function SettingsForm() {
         {/* Configuração SMTP */}
         <div className="lg:col-span-2">
           <SMTPConfigForm />
+        </div>
+
+        {/* Configuração WAHA (WhatsApp) */}
+        <div className="lg:col-span-2">
+          <WAHAConfigForm />
         </div>
 
         {/* Dados e Segurança */}

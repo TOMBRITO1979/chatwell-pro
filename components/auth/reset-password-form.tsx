@@ -14,6 +14,7 @@ export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
   const [email, setEmail] = useState('');
 
   const router = useRouter();
@@ -23,6 +24,7 @@ export function ResetPasswordForm() {
     setIsLoading(true);
     setError('');
     setSuccess('');
+    setResetUrl('');
 
     try {
       const response = await fetch('/api/auth/reset-password', {
@@ -39,7 +41,12 @@ export function ResetPasswordForm() {
         throw new Error(data.message || 'Erro ao enviar e-mail de recuperação');
       }
 
-      setSuccess('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      setSuccess(data.message || 'Link de recuperação gerado com sucesso!');
+
+      // Se retornar resetUrl (modo dev ou SMTP não configurado), exibir o link
+      if (data.resetUrl) {
+        setResetUrl(data.resetUrl);
+      }
 
     } catch (err: any) {
       setError(err.message);
@@ -78,6 +85,26 @@ export function ResetPasswordForm() {
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription className="text-green-600">
                   {success}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {resetUrl && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertDescription className="text-blue-800">
+                  <p className="font-medium mb-2">🔗 Link de Recuperação:</p>
+                  <a
+                    href={resetUrl}
+                    className="text-blue-600 hover:underline break-all block mb-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {resetUrl}
+                  </a>
+                  <p className="text-xs mt-2">
+                    💡 Clique no link acima ou copie e cole no navegador.<br/>
+                    ⚠️ O link expira em 1 hora.
+                  </p>
                 </AlertDescription>
               </Alert>
             )}

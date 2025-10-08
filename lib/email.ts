@@ -50,15 +50,24 @@ export async function createTransporter(userId: string) {
     throw new Error('Configurações SMTP não encontradas ou inativas');
   }
 
-  const transporter = nodemailer.createTransport({
+  // Configuração correta do transporte
+  const transportConfig: any = {
     host: settings.host,
     port: settings.port,
-    secure: settings.secure, // true para 465, false para outras portas
+    secure: settings.secure === true, // true para 465 (SSL), false para 587 (STARTTLS)
     auth: {
       user: settings.username,
       pass: settings.password,
     },
-  });
+  };
+
+  // Para porta 587, forçar STARTTLS
+  if (settings.port === 587) {
+    transportConfig.requireTLS = true;
+    transportConfig.secure = false;
+  }
+
+  const transporter = nodemailer.createTransport(transportConfig);
 
   return { transporter, settings };
 }
@@ -95,15 +104,24 @@ export async function sendEmail(userId: string, options: EmailOptions): Promise<
  */
 export async function testSMTPConnection(settings: SMTPSettings): Promise<{ success: boolean; message: string }> {
   try {
-    const transporter = nodemailer.createTransport({
+    // Configuração correta do transporte
+    const transportConfig: any = {
       host: settings.host,
       port: settings.port,
-      secure: settings.secure,
+      secure: settings.secure === true, // true para 465 (SSL), false para 587 (STARTTLS)
       auth: {
         user: settings.username,
         pass: settings.password,
       },
-    });
+    };
+
+    // Para porta 587, forçar STARTTLS
+    if (settings.port === 587) {
+      transportConfig.requireTLS = true;
+      transportConfig.secure = false;
+    }
+
+    const transporter = nodemailer.createTransport(transportConfig);
 
     await transporter.verify();
     return { success: true, message: 'Conexão SMTP estabelecida com sucesso!' };

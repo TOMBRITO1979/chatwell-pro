@@ -3,39 +3,29 @@ import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook signature if WAHA_API_KEY is provided
-    const apiKey = request.headers.get('x-api-key');
-    const expectedKey = process.env.WAHA_API_KEY;
-
-    if (expectedKey && apiKey !== expectedKey) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
-    const { event, data, timestamp } = body;
+    const { event, session, payload, engine, environment } = body;
 
-    console.log('WAHA Webhook received:', { event, timestamp });
-
-    // Store webhook data for processing
-    // TODO: Implement notifications_outbox table if needed
-    console.log('Webhook received:', body);
+    console.log('WAHA Webhook received:', { event, session });
 
     // Process different webhook events
     switch (event) {
       case 'message':
-        await handleIncomingMessage(data);
+      case 'message.any':
+        await handleIncomingMessage(session, payload);
+        break;
+      case 'state.change':
+        await handleStateChange(session, payload);
         break;
       case 'session.status':
-        await handleSessionStatus(data);
+        await handleSessionStatus(session, payload);
         break;
-      case 'qr':
-        await handleQRCode(data);
+      case 'group.join':
+      case 'group.leave':
+        await handleGroupEvent(session, payload, event);
         break;
       default:
-        console.log('Unknown WAHA webhook event:', event);
+        console.log('WAHA webhook event received:', event, payload);
     }
 
     return NextResponse.json({
@@ -46,41 +36,75 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('WAHA webhook error:', error);
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Webhook processing failed', message: error.message },
       { status: 500 }
     );
   }
 }
 
-async function handleIncomingMessage(data: any) {
-  // Process incoming WhatsApp messages
-  console.log('Processing incoming message:', data);
+async function handleIncomingMessage(session: string, payload: any) {
+  console.log('Processing incoming message:', { session, from: payload.from, hasMedia: !!payload.hasMedia });
 
-  // You can add logic here to:
-  // - Update customer records
-  // - Create notifications
-  // - Trigger automated responses
-}
+  try {
+    // Aqui você pode:
+    // 1. Salvar a mensagem no banco de dados
+    // 2. Notificar o usuário
+    // 3. Processar comandos automáticos
+    // 4. Atualizar registros de clientes
 
-async function handleSessionStatus(data: any) {
-  // Handle WhatsApp session status changes
-  console.log('Processing session status:', data);
+    const messageData = {
+      session_name: session,
+      message_id: payload.id,
+      from: payload.from,
+      to: payload.to,
+      body: payload.body || '',
+      timestamp: payload.timestamp,
+      hasMedia: payload.hasMedia || false,
+      type: payload.type || 'text'
+    };
 
-  // Update connection status in database
-  if (data.sessionId) {
-    await db.query(
-      `UPDATE waha_connections
-       SET status = $1, session_id = $2
-       WHERE session_id = $3 OR session_id IS NULL`,
-      [data.status, data.sessionId, data.sessionId]
-    );
+    console.log('Message data:', messageData);
+
+    // Exemplo: Salvar no banco (você pode criar uma tabela whatsapp_messages)
+    // await db.query(
+    //   'INSERT INTO whatsapp_messages (session_name, message_id, from_number, to_number, body, timestamp, has_media, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+    //   [messageData.session_name, messageData.message_id, messageData.from, messageData.to, messageData.body, new Date(messageData.timestamp * 1000), messageData.hasMedia, messageData.type]
+    // );
+
+  } catch (error) {
+    console.error('Error handling incoming message:', error);
   }
 }
 
-async function handleQRCode(data: any) {
-  // Handle QR code for WhatsApp authentication
-  console.log('Processing QR code:', data);
+async function handleStateChange(session: string, payload: any) {
+  console.log('State change:', { session, state: payload.state });
 
-  // Store QR code for user authentication
-  // This would typically be sent to the frontend via WebSocket or stored for polling
+  try {
+    // Atualizar status da sessão no banco
+    await db.query(
+      'UPDATE waha_settings SET status = $1, last_sync = CURRENT_TIMESTAMP WHERE session_name = $2',
+      [payload.state, session]
+    );
+  } catch (error) {
+    console.error('Error handling state change:', error);
+  }
+}
+
+async function handleSessionStatus(session: string, payload: any) {
+  console.log('Session status:', { session, status: payload });
+
+  try {
+    // Atualizar status da sessão
+    await db.query(
+      'UPDATE waha_settings SET status = $1, last_sync = CURRENT_TIMESTAMP WHERE session_name = $2',
+      [payload.status || 'unknown', session]
+    );
+  } catch (error) {
+    console.error('Error handling session status:', error);
+  }
+}
+
+async function handleGroupEvent(session: string, payload: any, event: string) {
+  console.log('Group event:', { session, event, payload });
+  // Processar eventos de grupo (join/leave)
 }

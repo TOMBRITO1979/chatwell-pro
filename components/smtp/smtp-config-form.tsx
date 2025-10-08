@@ -37,6 +37,17 @@ export function SMTPConfigForm() {
     is_active: false
   });
 
+  // Auto-ajustar secure baseado na porta
+  const handlePortChange = (port: number) => {
+    let secure = false;
+    if (port === 465) {
+      secure = true;
+    } else if (port === 587 || port === 25) {
+      secure = false;
+    }
+    setFormData({ ...formData, port, secure });
+  };
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -200,29 +211,32 @@ export function SMTPConfigForm() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="port">Porta *</Label>
-            <Input
+            <select
               id="port"
-              type="number"
-              placeholder="587"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={formData.port}
-              onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 587 })}
-            />
+              onChange={(e) => handlePortChange(parseInt(e.target.value))}
+            >
+              <option value="587">587 (STARTTLS/TLS)</option>
+              <option value="465">465 (SSL/TLS)</option>
+              <option value="25">25 (Sem criptografia)</option>
+              <option value="2525">2525 (Alternativo)</option>
+            </select>
             <p className="text-xs text-gray-500 mt-1">
-              587 (TLS) ou 465 (SSL)
+              Recomendado: 587 para a maioria dos servidores
             </p>
           </div>
 
           <div>
-            <Label htmlFor="secure">Conexão Segura</Label>
-            <select
-              id="secure"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={formData.secure ? 'true' : 'false'}
-              onChange={(e) => setFormData({ ...formData, secure: e.target.value === 'true' })}
-            >
-              <option value="false">TLS (porta 587)</option>
-              <option value="true">SSL (porta 465)</option>
-            </select>
+            <Label htmlFor="secure">Tipo de Segurança</Label>
+            <div className="flex h-10 items-center px-3 py-2 rounded-md border border-input bg-gray-50">
+              <span className="text-sm font-medium">
+                {formData.port === 465 ? '🔒 SSL/TLS' : formData.port === 587 ? '🔐 STARTTLS' : '⚠️ Não criptografado'}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Detectado automaticamente pela porta
+            </p>
           </div>
         </div>
 
@@ -384,11 +398,21 @@ export function SMTPConfigForm() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
           <h4 className="font-medium text-blue-900 mb-2">📧 Configurações Comuns</h4>
           <div className="text-xs text-blue-800 space-y-1">
-            <p><strong>Gmail:</strong> smtp.gmail.com:587 (TLS) - Requer senha de app</p>
-            <p><strong>Outlook/Office365:</strong> smtp.office365.com:587 (TLS)</p>
-            <p><strong>Yahoo:</strong> smtp.mail.yahoo.com:587 (TLS)</p>
-            <p><strong>SendGrid:</strong> smtp.sendgrid.net:587 (TLS)</p>
-            <p><strong>Mailgun:</strong> smtp.mailgun.org:587 (TLS)</p>
+            <p><strong>Gmail:</strong> smtp.gmail.com porta 587 - Use "Senhas de app" (não a senha normal)</p>
+            <p><strong>Outlook/Office365:</strong> smtp.office365.com porta 587</p>
+            <p><strong>Yahoo:</strong> smtp.mail.yahoo.com porta 587</p>
+            <p><strong>SendGrid:</strong> smtp.sendgrid.net porta 587</p>
+            <p><strong>Mailgun:</strong> smtp.mailgun.org porta 587</p>
+          </div>
+        </div>
+
+        {/* Alerta sobre erro SSL */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h4 className="font-medium text-yellow-900 mb-2">⚠️ Problemas Comuns</h4>
+          <div className="text-xs text-yellow-800 space-y-2">
+            <p><strong>Erro "wrong version number":</strong> Use porta 587 (STARTTLS) em vez de 465 (SSL). A maioria dos servidores modernos usa STARTTLS na porta 587.</p>
+            <p><strong>Gmail:</strong> Ative a verificação em 2 etapas e crie uma "Senha de app" em Gerenciar conta Google → Segurança → Senhas de app.</p>
+            <p><strong>Autenticação falhou:</strong> Verifique se o usuário e senha estão corretos. Para Gmail, use senha de app, não a senha normal.</p>
           </div>
         </div>
       </CardContent>
