@@ -196,6 +196,11 @@ export function Navigation({ isOpen, onToggle }: NavigationProps) {
             <Button
               variant="ghost"
               className="w-full justify-start text-gray-600 hover:text-gray-900"
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/auth/login';
+              }}
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sair

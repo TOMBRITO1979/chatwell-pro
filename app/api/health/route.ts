@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET() {
   try {
     // Check database connection
-    const dbResult = await query('SELECT 1 as healthy');
+    const dbResult = await db.query('SELECT 1 as healthy');
     const dbHealthy = dbResult.rows.length > 0;
 
     // Check Redis if available

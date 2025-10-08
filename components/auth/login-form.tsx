@@ -41,9 +41,9 @@ export function LoginForm() {
         throw new Error(data.message || 'Erro no login');
       }
 
-      // Store tokens
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // Store token and user
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
       // Redirect to dashboard
       router.push('/');

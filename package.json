@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:init": "node scripts/init-db.js"
   },
   "dependencies": {
     "next": "14.2.5",

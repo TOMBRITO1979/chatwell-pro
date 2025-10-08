@@ -66,12 +66,16 @@ export function RegisterForm() {
         throw new Error(data.message || 'Erro no cadastro');
       }
 
-      setSuccess('Conta criada com sucesso! Verifique seu e-mail para ativar a conta.');
+      // Store token and user
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirect to verification page after 2 seconds
+      setSuccess('Conta criada com sucesso! Redirecionando...');
+
+      // Redirect to dashboard after 1 second
       setTimeout(() => {
-        router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}`);
-      }, 2000);
+        router.push('/');
+      }, 1000);
 
     } catch (err: any) {
       setError(err.message);

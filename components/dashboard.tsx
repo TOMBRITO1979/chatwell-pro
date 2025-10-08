@@ -54,7 +54,7 @@ export default function Dashboard() {
   const top10Compras = useMemo(() => mockCompras.slice(0,10), []);
 
   const projetosOrdenados = useMemo(() => {
-    const ordem = { pendente: 0, iniciando: 1, em_andamento: 2, concluido: 3 };
+    const ordem: Record<string, number> = { pendente: 0, iniciando: 1, em_andamento: 2, concluido: 3 };
     return [...mockProjetos].sort((a,b)=> ordem[a.status]-ordem[b.status]);
   }, []);
 
@@ -80,7 +80,7 @@ export default function Dashboard() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input placeholder="Buscar... (nome, data, nº conf., etc.)" className="w-64 pl-10" />
           </div>
-          <Button className="bg-gradient-to-r from-chatwell-green to-chatwell-blue text-white hover:opacity-90">
+          <Button className="bg-gradient-to-r from-chatwell-green to-chatwell-blue text-white hover:opacity-90" disabled>
             Filtrar
           </Button>
         </div>

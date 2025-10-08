@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +20,8 @@ export async function POST(request: NextRequest) {
     console.log('WAHA Webhook received:', { event, timestamp });
 
     // Store webhook data for processing
-    await query(
-      `INSERT INTO notifications_outbox (account_id, topic, payload_json, status)
-       VALUES ($1, $2, $3, $4)`,
-      ['system', 'waha_webhook', JSON.stringify(body), 'pending']
-    );
+    // TODO: Implement notifications_outbox table if needed
+    console.log('Webhook received:', body);
 
     // Process different webhook events
     switch (event) {
@@ -71,7 +68,7 @@ async function handleSessionStatus(data: any) {
 
   // Update connection status in database
   if (data.sessionId) {
-    await query(
+    await db.query(
       `UPDATE waha_connections
        SET status = $1, session_id = $2
        WHERE session_id = $3 OR session_id IS NULL`,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -10,11 +10,15 @@ export async function GET() {
     for (const service of services) {
       try {
         const url = getServiceUrl(service);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch(`${url}/api/health`, {
           method: 'GET',
-          timeout: 5000,
+          signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
         const health = await response.json();
         statuses.push({
           service,
@@ -66,7 +70,7 @@ export async function GET() {
 }
 
 function getServiceUrl(service: string): string {
-  const baseUrls = {
+  const baseUrls: Record<string, string> = {
     app: process.env.APP_URL || 'https://app.chatwell.pro',
     api: process.env.API_URL || 'https://api.chatwell.pro',
     auth: process.env.AUTH_URL || 'https://auth.chatwell.pro',
@@ -82,7 +86,7 @@ async function checkDependencies() {
 
   // Check database
   try {
-    await query('SELECT 1');
+    await db.query('SELECT 1');
     dependencies.push({
       name: 'PostgreSQL',
       status: 'healthy',
