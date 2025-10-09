@@ -66,6 +66,9 @@ secrets/
 *.pem
 *.p12
 *.pfx
+test-smtp.js
+PORTAINER_UPDATE_GUIDE.md
+*.md.backup
 
 # Database dumps
 *.sql.gz

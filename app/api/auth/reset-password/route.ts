@@ -48,107 +48,58 @@ export async function POST(request: NextRequest) {
     // Criar link de reset
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.chatwell.pro'}/auth/reset-password/${resetToken}`;
 
-    // Tentar enviar email usando SMTP configurado
-    try {
-      // Buscar configurações SMTP do usuário
-      const smtpResult = await db.query(
-        'SELECT host, port, secure, username, password, from_email, from_name FROM smtp_settings WHERE user_id = $1 AND is_active = true',
-        [user.id]
-      );
-
-      if (smtpResult.rows.length === 0) {
-        // SMTP não configurado - retornar link diretamente
-        console.log('SMTP não configurado para usuário:', user.email);
-
-        return NextResponse.json({
-          success: true,
-          message: '⚠️ SMTP não configurado. Copie o link abaixo para recuperar sua senha:',
-          resetUrl: resetUrl,
-          instructions: 'Configure o SMTP em Configurações para receber emails automaticamente.',
-          devMode: true
-        });
-      }
-
-      // SMTP configurado - enviar email
-      const smtpConfig = smtpResult.rows[0];
-      const nodemailer = require('nodemailer');
-
-      const transportConfig: any = {
-        host: smtpConfig.host,
-        port: smtpConfig.port,
-        secure: smtpConfig.secure === true,
-        auth: {
-          user: smtpConfig.username,
-          pass: smtpConfig.password,
-        },
-      };
-
-      if (smtpConfig.port === 587) {
-        transportConfig.requireTLS = true;
-        transportConfig.secure = false;
-      }
-
-      const transporter = nodemailer.createTransport(transportConfig);
-
-      const from = smtpConfig.from_name
-        ? `"${smtpConfig.from_name}" <${smtpConfig.from_email}>`
-        : smtpConfig.from_email;
-
-      await transporter.sendMail({
-        from,
-        to: user.email,
-        subject: 'Recuperação de Senha - Chatwell Pro',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #10b981;">🔐 Recuperação de Senha</h2>
-            <p>Olá, ${user.name}!</p>
-            <p>Você solicitou a recuperação de senha da sua conta no <strong>Chatwell Pro</strong>.</p>
-            <p>Clique no botão abaixo para criar uma nova senha:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}"
-                 style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-                        color: white;
-                        padding: 12px 30px;
-                        text-decoration: none;
-                        border-radius: 8px;
-                        font-weight: bold;
-                        display: inline-block;">
-                Redefinir Senha
-              </a>
-            </div>
-            <p style="color: #6b7280; font-size: 14px;">
-              Ou copie e cole este link no seu navegador:<br>
-              <a href="${resetUrl}" style="color: #3b82f6;">${resetUrl}</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-            <p style="color: #6b7280; font-size: 14px;">
-              <strong>⚠️ Importante:</strong><br>
-              • Este link expira em 1 hora<br>
-              • Se você não solicitou esta recuperação, ignore este email<br>
-              • Sua senha atual permanece ativa até que você a altere
-            </p>
-            <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-              Atenciosamente,<br>
-              Equipe Chatwell Pro
-            </p>
+    // Enviar email usando SMTP padrão do sistema (contact@chatwell.pro)
+    const emailSent = await sendEmail(null, {
+      to: user.email,
+      subject: 'Recuperação de Senha - Chatwell Pro',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">🔐 Recuperação de Senha</h2>
+          <p>Olá, ${user.name}!</p>
+          <p>Você solicitou a recuperação de senha da sua conta no <strong>Chatwell Pro</strong>.</p>
+          <p>Clique no botão abaixo para criar uma nova senha:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}"
+               style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+                      color: white;
+                      padding: 12px 30px;
+                      text-decoration: none;
+                      border-radius: 8px;
+                      font-weight: bold;
+                      display: inline-block;">
+              Redefinir Senha
+            </a>
           </div>
-        `
-      });
+          <p style="color: #6b7280; font-size: 14px;">
+            Ou copie e cole este link no seu navegador:<br>
+            <a href="${resetUrl}" style="color: #3b82f6;">${resetUrl}</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="color: #6b7280; font-size: 14px;">
+            <strong>⚠️ Importante:</strong><br>
+            • Este link expira em 1 hora<br>
+            • Se você não solicitou esta recuperação, ignore este email<br>
+            • Sua senha atual permanece ativa até que você a altere
+          </p>
+          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
+            Atenciosamente,<br>
+            Equipe Chatwell Pro
+          </p>
+        </div>
+      `
+    });
 
+    if (emailSent) {
       return NextResponse.json({
         success: true,
         message: '✅ Email de recuperação enviado com sucesso! Verifique sua caixa de entrada.'
       });
-
-    } catch (emailError: any) {
-      console.error('Erro ao enviar email:', emailError);
-
-      // Em caso de erro no email, retornar o link (modo fallback)
+    } else {
+      // Fallback: retornar o link se o email falhar
       return NextResponse.json({
         success: true,
         message: '⚠️ Não foi possível enviar o email. Use o link abaixo:',
         resetUrl: resetUrl,
-        error: emailError.message,
         devMode: true
       });
     }

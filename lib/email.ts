@@ -20,6 +20,33 @@ export interface SMTPSettings {
 }
 
 /**
+ * Configurações SMTP padrão do sistema (variáveis de ambiente)
+ */
+export function getDefaultSMTPSettings(): SMTPSettings | null {
+  const host = process.env.DEFAULT_SMTP_HOST;
+  const port = process.env.DEFAULT_SMTP_PORT;
+  const user = process.env.DEFAULT_SMTP_USER;
+  const pass = process.env.DEFAULT_SMTP_PASS;
+  const fromEmail = process.env.DEFAULT_FROM_EMAIL;
+
+  if (!host || !port || !user || !pass || !fromEmail) {
+    console.warn('⚠️  Configurações SMTP padrão não encontradas nas variáveis de ambiente');
+    return null;
+  }
+
+  return {
+    host,
+    port: parseInt(port),
+    secure: process.env.DEFAULT_SMTP_SECURE === 'true',
+    username: user,
+    password: pass,
+    from_email: fromEmail,
+    from_name: process.env.DEFAULT_FROM_NAME || 'Chatwell Pro',
+    is_active: true,
+  };
+}
+
+/**
  * Busca as configurações SMTP do usuário
  */
 export async function getSMTPSettings(userId: string): Promise<SMTPSettings | null> {
@@ -42,12 +69,28 @@ export async function getSMTPSettings(userId: string): Promise<SMTPSettings | nu
 
 /**
  * Cria um transporter do nodemailer com as configurações SMTP
+ * Prioriza configuração do usuário, mas usa SMTP padrão do sistema como fallback
  */
-export async function createTransporter(userId: string) {
-  const settings = await getSMTPSettings(userId);
+export async function createTransporter(userId?: string) {
+  let settings: SMTPSettings | null = null;
 
+  // Tentar obter configurações do usuário primeiro (se userId fornecido)
+  if (userId) {
+    try {
+      settings = await getSMTPSettings(userId);
+    } catch (error) {
+      console.log('Erro ao buscar SMTP do usuário, usando padrão');
+    }
+  }
+
+  // Se não houver configurações do usuário, usar SMTP padrão do sistema
   if (!settings || !settings.is_active) {
-    throw new Error('Configurações SMTP não encontradas ou inativas');
+    console.log('📧 Usando SMTP padrão do sistema (contact@chatwell.pro)');
+    settings = getDefaultSMTPSettings();
+  }
+
+  if (!settings) {
+    throw new Error('Configurações SMTP não encontradas. Configure SMTP padrão nas variáveis de ambiente.');
   }
 
   // Configuração correta do transporte
@@ -73,11 +116,13 @@ export async function createTransporter(userId: string) {
 }
 
 /**
- * Envia um email usando as configurações SMTP do usuário
+ * Envia um email usando as configurações SMTP do usuário ou padrão do sistema
+ * @param userId - ID do usuário (opcional). Se não fornecido, usa SMTP padrão do sistema
+ * @param options - Opções do email (to, subject, text, html)
  */
-export async function sendEmail(userId: string, options: EmailOptions): Promise<boolean> {
+export async function sendEmail(userId: string | null | undefined, options: EmailOptions): Promise<boolean> {
   try {
-    const { transporter, settings } = await createTransporter(userId);
+    const { transporter, settings } = await createTransporter(userId || undefined);
 
     const from = settings.from_name
       ? `"${settings.from_name}" <${settings.from_email}>`
@@ -91,10 +136,12 @@ export async function sendEmail(userId: string, options: EmailOptions): Promise<
       html: options.html,
     });
 
-    console.log('Email enviado:', info.messageId);
+    console.log('✅ Email enviado com sucesso:', info.messageId);
+    console.log('📧 De:', from);
+    console.log('📬 Para:', options.to);
     return true;
   } catch (error) {
-    console.error('Erro ao enviar email:', error);
+    console.error('❌ Erro ao enviar email:', error);
     return false;
   }
 }
