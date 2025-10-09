@@ -206,7 +206,7 @@ export async function PUT(request: NextRequest) {
     // Atualizar senha e limpar token
     await db.query(
       `UPDATE users
-       SET password = $1, reset_token = NULL, reset_token_expiry = NULL
+       SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL
        WHERE id = $2`,
       [hashedPassword, userId]
     );
