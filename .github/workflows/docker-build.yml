@@ -62,7 +62,7 @@ jobs:
         echo "IMAGE_TAG=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" > deployment-artifact/.env
 
     - name: Upload deployment artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: deployment-${{ github.sha }}
         path: deployment-artifact/
