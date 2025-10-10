@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: chatwell
       POSTGRES_USER: chatwell
-      POSTGRES_PASSWORD: RuGc2mfJ8oJW6giog3RiJCBd5qZmWp
+      POSTGRES_PASSWORD: YOUR_POSTGRES_PASSWORD
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,20 +34,20 @@ services:
     image: tomautomations/chatwell-pro:v3.5
     environment:
       # Database
-      DATABASE_URL: "postgresql://chatwell:RuGc2mfJ8oJW6giog3RiJCBd5qZmWp@postgres:5432/chatwell"
+      DATABASE_URL: "postgresql://chatwell:YOUR_POSTGRES_PASSWORD@postgres:5432/chatwell"
 
       # Redis
       REDIS_URL: "redis://redis_redis:6379"
 
       # JWT Secret
-      JWT_SECRET: "RuGc2mfJ8oJW6giog3RiJCBd5qZmWpSD"
+      JWT_SECRET: "YOUR_POSTGRES_PASSWORDSD"
 
       # Email Configuration (Gmail SMTP Padrão - Tarefa 6)
       DEFAULT_SMTP_HOST: "smtp.gmail.com"
       DEFAULT_SMTP_PORT: "587"
       DEFAULT_SMTP_SECURE: "false"
       DEFAULT_SMTP_USER: "chatwellpro@gmail.com"
-      DEFAULT_SMTP_PASS: "xoru ncif szdv brjc"
+      DEFAULT_SMTP_PASS: "YOUR_GMAIL_APP_PASSWORD"
       DEFAULT_FROM_EMAIL: "chatwellpro@gmail.com"
       DEFAULT_FROM_NAME: "Chatwell Pro"
 
@@ -57,12 +57,12 @@ services:
 
       # WhatsApp API - WAHA (Conexão Padrão - Tarefa 5)
       WAHA_BASE_URL: "https://zap.joinerchat.net"
-      WAHA_API_KEY: "CoMeCoH2ki86xkbibnczGqeDgYqxE0p65YEWFiM"
+      WAHA_API_KEY: "YOUR_WAHA_API_KEY"
       WAHA_SESSION_NAME: "chatwell-pro"
       WAHA_DEFAULT_PHONE: "380947105869@c.us"
 
       # Cron Job Secret (para proteger endpoints de notificações)
-      CRON_SECRET: "chatwell-cron-secret-2025"
+      CRON_SECRET: "YOUR_CRON_SECRET"
 
       # Next.js
       NODE_ENV: production

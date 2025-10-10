@@ -80,3 +80,8 @@ PORTAINER_UPDATE_GUIDE.md
 
 # Local development
 .local/PORTAINER_ENV_VARS.txt
+
+# Deployment files with secrets (use .example versions)
+docker-compose-stack.yml
+DEPLOY_PORTAINER.md
+README_v3.*.md
