@@ -30,7 +30,7 @@ export function TaskForm({ task, onClose }: TaskFormProps) {
     title: '',
     description: '',
     due_date: '',
-    status: 'pending',
+    status: 'em_tratativa',
     priority: 'medium',
     estimated_hours: '',
     actual_hours: '',
@@ -59,7 +59,7 @@ export function TaskForm({ task, onClose }: TaskFormProps) {
         title: task.title || '',
         description: task.description || '',
         due_date: formatDateForInput(task.due_date),
-        status: task.status || 'pending',
+        status: task.status || 'em_tratativa',
         priority: task.priority || 'medium',
         estimated_hours: task.estimated_hours || '',
         actual_hours: task.actual_hours || '',
@@ -201,10 +201,11 @@ export function TaskForm({ task, onClose }: TaskFormProps) {
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 >
-                  <option value="pending">Pendente</option>
-                  <option value="in_progress">Em Progresso</option>
-                  <option value="completed">Concluída</option>
-                  <option value="cancelled">Cancelada</option>
+                  <option value="em_tratativa">Em Tratativa</option>
+                  <option value="iniciado">Em Andamento</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="cancelado">Cancelado</option>
+                  <option value="concluido">Concluído</option>
                 </select>
               </div>
               <div>

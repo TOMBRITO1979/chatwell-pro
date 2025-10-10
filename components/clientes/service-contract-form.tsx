@@ -47,6 +47,26 @@ export function ServiceContractForm({ clientId, contract, onClose }: ServiceCont
     loadProjects();
   }, []);
 
+  useEffect(() => {
+    if (contract) {
+      // Formatar datas para o formato YYYY-MM-DD
+      const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+      };
+
+      setFormData({
+        project_id: contract.project_id || '',
+        contract_date: formatDate(contract.contract_date) || new Date().toISOString().split('T')[0],
+        delivery_date: formatDate(contract.delivery_date) || '',
+        status: contract.status || 'em_tratativa',
+        notes: contract.notes || '',
+        tags: contract.tags?.join(', ') || ''
+      });
+    }
+  }, [contract]);
+
   const loadProjects = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -196,9 +216,10 @@ export function ServiceContractForm({ clientId, contract, onClose }: ServiceCont
                 className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-chatwell-blue"
               >
                 <option value="em_tratativa">Em Tratativa</option>
-                <option value="iniciado">Iniciado</option>
+                <option value="iniciado">Em Andamento</option>
                 <option value="pendente">Pendente</option>
                 <option value="cancelado">Cancelado</option>
+                <option value="concluido">Concluído</option>
               </select>
             </div>
 

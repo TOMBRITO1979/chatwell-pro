@@ -117,6 +117,14 @@ export async function PUT(
         'UPDATE projects SET status = $1, updated_at = NOW() WHERE id = $2',
         [status, result.rows[0].project_id]
       );
+
+      // Atualizar task correspondente no Kanban
+      await db.query(
+        `UPDATE tasks
+         SET status = $1, updated_at = NOW()
+         WHERE project_id = $2 AND client_id = $3 AND user_id = $4`,
+        [status, result.rows[0].project_id, existingContract.rows[0].client_id, payload.userId]
+      );
     }
 
     return NextResponse.json({

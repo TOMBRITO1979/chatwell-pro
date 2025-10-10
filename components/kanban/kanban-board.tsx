@@ -11,7 +11,7 @@ interface Task {
   title: string;
   description: string | null;
   due_date: string | null;
-  status: 'em_tratativa' | 'iniciado' | 'pendente' | 'cancelado';
+  status: 'em_tratativa' | 'iniciado' | 'pendente' | 'cancelado' | 'concluido';
   priority: 'low' | 'medium' | 'high';
   client_name: string | null;
   project_name: string | null;
@@ -19,7 +19,7 @@ interface Task {
 }
 
 interface Column {
-  id: 'em_tratativa' | 'iniciado' | 'pendente' | 'cancelado';
+  id: 'em_tratativa' | 'iniciado' | 'pendente' | 'concluido' | 'cancelado';
   title: string;
   color: string;
 }
@@ -35,6 +35,7 @@ export function KanbanBoard() {
     { id: 'em_tratativa', title: 'Em Tratativa', color: 'bg-yellow-100 border-yellow-300' },
     { id: 'iniciado', title: 'Em Andamento', color: 'bg-blue-100 border-blue-300' },
     { id: 'pendente', title: 'Pendente', color: 'bg-orange-100 border-orange-300' },
+    { id: 'concluido', title: 'Concluído', color: 'bg-green-100 border-green-300' },
     { id: 'cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-300' }
   ];
 
@@ -225,7 +226,7 @@ export function KanbanBoard() {
           <p className="text-gray-600">Carregando tarefas...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id);
 
