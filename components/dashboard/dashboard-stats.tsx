@@ -2,56 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Users, CheckSquare, Briefcase, Calendar,
-  DollarSign, TrendingUp, TrendingDown, ShoppingCart,
-  AlertCircle, Clock, CheckCircle2, ArrowUpRight, ArrowDownRight
+  Calendar, Clock, AlertCircle, CheckSquare, ShoppingCart,
+  ChevronRight, ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-
-interface DashboardStats {
-  clients: { total: number };
-  tasks: {
-    total: number;
-    pending: number;
-    in_progress: number;
-    completed: number;
-    overdue: number;
-  };
-  projects: {
-    total: number;
-    active: number;
-    completed: number;
-  };
-  events: { upcoming: number };
-  accounts: {
-    receivable_pending: number;
-    receivable_paid: number;
-    payable_pending: number;
-    payable_paid: number;
-  };
-  business_expenses: {
-    pending: number;
-    paid: number;
-  };
-  personal_expenses: {
-    pending: number;
-    paid: number;
-  };
-  purchases: {
-    total: number;
-    pending: number;
-    total_estimated: number;
-  };
-}
-
-interface RecentTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  due_date: string | null;
-}
 
 interface UpcomingEvent {
   id: string;
@@ -59,6 +14,8 @@ interface UpcomingEvent {
   start_date: string;
   end_date: string | null;
   type: string;
+  phone?: string;
+  email?: string;
 }
 
 interface UpcomingAccount {
@@ -70,12 +27,32 @@ interface UpcomingAccount {
   status: string;
 }
 
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+}
+
+interface Purchase {
+  id: string;
+  item_name: string;
+  quantity: number;
+  estimated_price: string | null;
+  status: string;
+}
+
 export function DashboardStats() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
-  const [upcomingAccounts, setUpcomingAccounts] = useState<UpcomingAccount[]>([]);
+  const [eventsToday, setEventsToday] = useState<UpcomingEvent[]>([]);
+  const [eventsTomorrow, setEventsTomorrow] = useState<UpcomingEvent[]>([]);
+  const [eventsLater, setEventsLater] = useState<UpcomingEvent[]>([]);
+  const [accountsToday, setAccountsToday] = useState<UpcomingAccount[]>([]);
+  const [accountsTomorrow, setAccountsTomorrow] = useState<UpcomingAccount[]>([]);
+  const [accountsLater, setAccountsLater] = useState<UpcomingAccount[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
 
   useEffect(() => {
     loadDashboard();
@@ -89,27 +66,62 @@ export function DashboardStats() {
         return;
       }
 
-      const response = await fetch('/api/dashboard/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // Load events
+      const eventsResponse = await fetch('/api/events', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/auth/login';
-        return;
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json();
+        if (eventsData.success) {
+          categorizeEvents(eventsData.events || []);
+        }
       }
 
-      const data = await response.json();
+      // Load accounts
+      const accountsResponse = await fetch('/api/accounts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-      if (data.success) {
-        setStats(data.stats);
-        setRecentTasks(data.recent_tasks || []);
-        setUpcomingEvents(data.upcoming_events || []);
-        setUpcomingAccounts(data.upcoming_accounts || []);
+      if (accountsResponse.ok) {
+        const accountsData = await accountsResponse.json();
+        if (accountsData.success) {
+          categorizeAccounts(accountsData.accounts || []);
+        }
       }
+
+      // Load tasks
+      const tasksResponse = await fetch('/api/tasks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json();
+        if (tasksData.success) {
+          // Show only pending and in-progress tasks
+          const activeTasks = (tasksData.tasks || []).filter(
+            (t: Task) => t.status === 'pendente' || t.status === 'iniciado' || t.status === 'em_tratativa'
+          );
+          setTasks(activeTasks.slice(0, 5));
+        }
+      }
+
+      // Load purchases
+      const purchasesResponse = await fetch('/api/purchases', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (purchasesResponse.ok) {
+        const purchasesData = await purchasesResponse.json();
+        if (purchasesData.success) {
+          // Show only pending purchases
+          const pendingPurchases = (purchasesData.purchases || []).filter(
+            (p: Purchase) => p.status === 'pending'
+          );
+          setPurchases(pendingPurchases.slice(0, 5));
+        }
+      }
+
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
     } finally {
@@ -117,14 +129,87 @@ export function DashboardStats() {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const categorizeEvents = (events: UpcomingEvent[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+    const todayEvents: UpcomingEvent[] = [];
+    const tomorrowEvents: UpcomingEvent[] = [];
+    const laterEvents: UpcomingEvent[] = [];
+
+    events.forEach(event => {
+      const eventDate = new Date(event.start_date);
+      eventDate.setHours(0, 0, 0, 0);
+
+      if (eventDate.getTime() === today.getTime()) {
+        todayEvents.push(event);
+      } else if (eventDate.getTime() === tomorrow.getTime()) {
+        tomorrowEvents.push(event);
+      } else if (eventDate > tomorrow) {
+        laterEvents.push(event);
+      }
+    });
+
+    setEventsToday(todayEvents);
+    setEventsTomorrow(tomorrowEvents);
+    setEventsLater(laterEvents.slice(0, 5));
+  };
+
+  const categorizeAccounts = (accounts: UpcomingAccount[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayAccounts: UpcomingAccount[] = [];
+    const tomorrowAccounts: UpcomingAccount[] = [];
+    const laterAccounts: UpcomingAccount[] = [];
+
+    // Filter only pending accounts
+    const pendingAccounts = accounts.filter(acc => acc.status === 'pending');
+
+    pendingAccounts.forEach(account => {
+      const dueDate = new Date(account.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+
+      if (dueDate.getTime() === today.getTime()) {
+        todayAccounts.push(account);
+      } else if (dueDate.getTime() === tomorrow.getTime()) {
+        tomorrowAccounts.push(account);
+      } else if (dueDate > tomorrow && dueDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+        laterAccounts.push(account);
+      }
+    });
+
+    setAccountsToday(todayAccounts);
+    setAccountsTomorrow(tomorrowAccounts);
+    setAccountsLater(laterAccounts.slice(0, 5));
+  };
+
+  const formatCurrency = (value: string) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(parseFloat(value));
   };
 
   const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDateShort = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short'
@@ -133,19 +218,10 @@ export function DashboardStats() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'low': return 'text-green-600 bg-green-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'in_progress': return 'text-blue-600';
-      case 'pending': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      case 'high': return 'bg-red-100 text-red-700';
+      case 'medium': return 'bg-yellow-100 text-yellow-700';
+      case 'low': return 'bg-green-100 text-green-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -157,20 +233,6 @@ export function DashboardStats() {
     );
   }
 
-  if (!stats) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">Erro ao carregar dados</p>
-      </div>
-    );
-  }
-
-  const cashFlow =
-    stats.accounts.receivable_pending -
-    stats.accounts.payable_pending -
-    stats.business_expenses.pending -
-    stats.personal_expenses.pending;
-
   return (
     <div className="p-4 md:p-6 xl:p-8">
       {/* Header */}
@@ -179,190 +241,239 @@ export function DashboardStats() {
           Dashboard
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Visão geral do seu negócio
+          Visão rápida da sua agenda, vencimentos e tarefas
         </p>
       </div>
 
-      {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Link href="/clientes">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Clientes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stats.clients.total}</p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Agenda */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-blue-600" />
+            Agenda
+          </h2>
+          <Link href="/agenda" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+            Ver tudo
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
 
-        <Link href="/tarefas">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <CheckSquare className="w-4 h-4" />
-                Tarefas
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Hoje */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Hoje</span>
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                  {eventsToday.length}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.tasks.total}</p>
-              <div className="flex gap-2 mt-2 text-xs">
-                <span className="text-yellow-600">{stats.tasks.pending} pendentes</span>
-                {stats.tasks.overdue > 0 && (
-                  <span className="text-red-600">{stats.tasks.overdue} atrasadas</span>
-                )}
-              </div>
+              {eventsToday.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
+              ) : (
+                <div className="space-y-2">
+                  {eventsToday.map((event) => (
+                    <div key={event.id} className="text-sm border-l-2 border-blue-300 pl-2">
+                      <p className="font-medium line-clamp-1">{event.title}</p>
+                      <p className="text-xs text-gray-500">{formatDate(event.start_date)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </Link>
 
-        <Link href="/projetos">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                Projetos
+          {/* Amanhã */}
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Amanhã</span>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+                  {eventsTomorrow.length}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.projects.total}</p>
-              <div className="flex gap-2 mt-2 text-xs">
-                <span className="text-blue-600">{stats.projects.active} ativos</span>
-              </div>
+              {eventsTomorrow.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
+              ) : (
+                <div className="space-y-2">
+                  {eventsTomorrow.map((event) => (
+                    <div key={event.id} className="text-sm border-l-2 border-green-300 pl-2">
+                      <p className="font-medium line-clamp-1">{event.title}</p>
+                      <p className="text-xs text-gray-500">{formatDate(event.start_date)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </Link>
 
-        <Link href="/agenda">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Eventos (próx. 7 dias)
+          {/* Depois */}
+          <Card className="border-l-4 border-l-purple-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Próximos Dias</span>
+                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
+                  {eventsLater.length}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.events.upcoming}</p>
+              {eventsLater.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
+              ) : (
+                <div className="space-y-2">
+                  {eventsLater.map((event) => (
+                    <div key={event.id} className="text-sm border-l-2 border-purple-300 pl-2">
+                      <p className="font-medium line-clamp-1">{event.title}</p>
+                      <p className="text-xs text-gray-500">{formatDateShort(event.start_date)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </Link>
+        </div>
       </div>
 
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Visão Financeira
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">A Receber (Pendente)</p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(stats.accounts.receivable_pending)}
-                </p>
-              </div>
-              <ArrowUpRight className="w-6 h-6 text-green-600" />
-            </div>
+      {/* Vencimentos */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+            Vencimentos (Contas a Pagar/Receber)
+          </h2>
+          <Link href="/contas" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+            Ver tudo
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
 
-            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">A Pagar (Pendente)</p>
-                <p className="text-xl font-bold text-red-600">
-                  {formatCurrency(stats.accounts.payable_pending)}
-                </p>
-              </div>
-              <ArrowDownRight className="w-6 h-6 text-red-600" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Hoje */}
+          <Card className="border-l-4 border-l-red-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Hoje</span>
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs">
+                  {accountsToday.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsToday.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
+              ) : (
+                <div className="space-y-2">
+                  {accountsToday.map((account) => (
+                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(account.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <div className="border-t pt-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Fluxo de Caixa Projetado</p>
-                <p className={`text-xl font-bold ${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(cashFlow)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Amanhã */}
+          <Card className="border-l-4 border-l-orange-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Amanhã</span>
+                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
+                  {accountsTomorrow.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsTomorrow.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
+              ) : (
+                <div className="space-y-2">
+                  {accountsTomorrow.map((account) => (
+                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(account.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5" />
-              Despesas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Gastos Empresariais (Pendentes)</p>
-                <p className="text-lg font-bold text-blue-600">
-                  {formatCurrency(stats.business_expenses.pending)}
-                </p>
-              </div>
-              <TrendingDown className="w-5 h-5 text-blue-600" />
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Gastos Pessoais (Pendentes)</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {formatCurrency(stats.personal_expenses.pending)}
-                </p>
-              </div>
-              <TrendingDown className="w-5 h-5 text-purple-600" />
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Lista de Compras (Estimado)</p>
-                <p className="text-lg font-bold text-orange-600">
-                  {formatCurrency(stats.purchases.total_estimated)}
-                </p>
-              </div>
-              <ShoppingCart className="w-5 h-5 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Próximos 7 dias */}
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Próximos 7 Dias</span>
+                <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs">
+                  {accountsLater.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsLater.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
+              ) : (
+                <div className="space-y-2">
+                  {accountsLater.map((account) => (
+                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <div className="flex items-center justify-between">
+                        <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(account.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatDateShort(account.due_date)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Recent Tasks, Events, and Accounts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Tasks */}
+      {/* Tarefas e Lista de Compras */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tarefas */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <CheckSquare className="w-5 h-5" />
-                Tarefas Prioritárias
+                <CheckSquare className="w-5 h-5 text-blue-600" />
+                Tarefas Pendentes
               </span>
-              <Link href="/tarefas" className="text-sm text-blue-600 hover:underline">
+              <Link href="/tarefas" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
                 Ver todas
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {recentTasks.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">Nenhuma tarefa pendente</p>
+            {tasks.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">Nenhuma tarefa pendente</p>
             ) : (
               <div className="space-y-3">
-                {recentTasks.map((task) => (
-                  <div key={task.id} className="border-l-2 border-blue-500 pl-3">
-                    <p className="text-sm font-medium line-clamp-1">{task.title}</p>
+                {tasks.map((task) => (
+                  <div key={task.id} className="border-l-2 border-blue-400 pl-3 py-2">
+                    <p className="font-medium text-sm line-clamp-1">{task.title}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                       </span>
                       {task.due_date && (
-                        <span className="text-xs text-gray-500">
-                          {formatDate(task.due_date)}
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDateShort(task.due_date)}
                         </span>
                       )}
                     </div>
@@ -373,66 +484,38 @@ export function DashboardStats() {
           </CardContent>
         </Card>
 
-        {/* Upcoming Events */}
+        {/* Lista de Compras */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Próximos Eventos
+                <ShoppingCart className="w-5 h-5 text-green-600" />
+                Lista de Compras
               </span>
-              <Link href="/agenda" className="text-sm text-blue-600 hover:underline">
-                Ver todos
-              </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingEvents.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">Nenhum evento próximo</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingEvents.map((event) => (
-                  <div key={event.id} className="border-l-2 border-green-500 pl-3">
-                    <p className="text-sm font-medium line-clamp-1">{event.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatDate(event.start_date)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                Vencimentos (7 dias)
-              </span>
-              <Link href="/contas" className="text-sm text-blue-600 hover:underline">
+              <Link href="/compras" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
                 Ver todas
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {upcomingAccounts.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">Nenhuma conta próxima ao vencimento</p>
+            {purchases.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">Nenhum item pendente</p>
             ) : (
               <div className="space-y-3">
-                {upcomingAccounts.map((account) => (
-                  <div key={account.id} className={`border-l-2 ${account.type === 'receivable' ? 'border-green-500' : 'border-red-500'} pl-3`}>
-                    <p className="text-sm font-medium line-clamp-1">{account.description}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(parseFloat(account.amount))}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatDate(account.due_date)}
+                {purchases.map((purchase) => (
+                  <div key={purchase.id} className="border-l-2 border-green-400 pl-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm line-clamp-1">{purchase.item_name}</p>
+                      <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {purchase.quantity}x
                       </span>
                     </div>
+                    {purchase.estimated_price && (
+                      <p className="text-xs text-green-600 font-semibold mt-1">
+                        ~{formatCurrency(purchase.estimated_price)}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
