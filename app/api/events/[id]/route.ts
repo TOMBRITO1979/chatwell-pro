@@ -18,8 +18,23 @@ export async function GET(
       return NextResponse.json({ message: 'Token inválido' }, { status: 401 });
     }
 
+    // Check if phone/email columns exist
+    let hasContactFields = true;
+    try {
+      await db.query(`SELECT phone, email FROM events LIMIT 0`);
+    } catch {
+      hasContactFields = false;
+    }
+
+    const selectFields = hasContactFields
+      ? `e.*, c.name as client_name, p.name as project_name`
+      : `e.id, e.user_id, e.client_id, e.project_id, e.title, e.description,
+         e.start_time, e.end_time, e.location, e.event_type, e.color,
+         e.is_all_day, e.reminder_minutes, e.created_at, e.updated_at,
+         c.name as client_name, p.name as project_name`;
+
     const result = await db.query(
-      `SELECT e.*, c.name as client_name, p.name as project_name
+      `SELECT ${selectFields}
        FROM events e
        LEFT JOIN clients c ON e.client_id = c.id
        LEFT JOIN projects p ON e.project_id = p.id
@@ -77,20 +92,46 @@ export async function PUT(
       return NextResponse.json({ message: 'Evento não encontrado' }, { status: 404 });
     }
 
-    const result = await db.query(
-      `UPDATE events
-       SET title = $1, description = $2, start_time = $3, end_time = $4,
-           location = $5, event_type = $6, color = $7, is_all_day = $8,
-           reminder_minutes = $9, client_id = $10, project_id = $11, phone = $12, email = $13
-       WHERE id = $14 AND user_id = $15
-       RETURNING *`,
-      [
-        title, description, start_time, end_time, location,
-        event_type, color, is_all_day, reminder_minutes,
-        client_id || null, project_id || null, phone || null, email || null,
-        params.id, payload.userId
-      ]
-    );
+    // Try to update with phone/email, fallback to without if columns don't exist
+    let result;
+    try {
+      result = await db.query(
+        `UPDATE events
+         SET title = $1, description = $2, start_time = $3, end_time = $4,
+             location = $5, event_type = $6, color = $7, is_all_day = $8,
+             reminder_minutes = $9, client_id = $10, project_id = $11, phone = $12, email = $13,
+             updated_at = NOW()
+         WHERE id = $14 AND user_id = $15
+         RETURNING *`,
+        [
+          title, description, start_time, end_time, location,
+          event_type, color, is_all_day, reminder_minutes,
+          client_id || null, project_id || null, phone || null, email || null,
+          params.id, payload.userId
+        ]
+      );
+    } catch (dbError: any) {
+      // If phone/email columns don't exist, update without them
+      if (dbError.message && dbError.message.includes('column')) {
+        result = await db.query(
+          `UPDATE events
+           SET title = $1, description = $2, start_time = $3, end_time = $4,
+               location = $5, event_type = $6, color = $7, is_all_day = $8,
+               reminder_minutes = $9, client_id = $10, project_id = $11,
+               updated_at = NOW()
+           WHERE id = $12 AND user_id = $13
+           RETURNING *`,
+          [
+            title, description, start_time, end_time, location,
+            event_type, color, is_all_day, reminder_minutes,
+            client_id || null, project_id || null,
+            params.id, payload.userId
+          ]
+        );
+      } else {
+        throw dbError;
+      }
+    }
 
     return NextResponse.json({
       success: true,

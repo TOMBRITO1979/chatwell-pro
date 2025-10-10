@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
 
-    // Filtro para "Em Andamento" (apenas status 'iniciado')
+    // Filtro para "Em Andamento" (todos exceto cancelado)
     if (inProgress) {
-      query += ` AND sc.status = 'iniciado'`;
+      query += ` AND sc.status != 'cancelado'`;
     }
 
     // Ordenação
