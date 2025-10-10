@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
 
-    // Filtro para "Em Andamento" (não cancelado e não concluído)
+    // Filtro para "Em Andamento" (apenas status 'iniciado')
     if (inProgress) {
-      query += ` AND sc.status NOT IN ('cancelado')`;
+      query += ` AND sc.status = 'iniciado'`;
     }
 
     // Ordenação
@@ -151,6 +151,39 @@ export async function POST(request: NextRequest) {
     await db.query(
       'UPDATE projects SET status = $1, updated_at = NOW() WHERE id = $2',
       [status || 'em_tratativa', project_id]
+    );
+
+    // Criar task no Kanban automaticamente
+    const projectData = await db.query(
+      'SELECT name FROM projects WHERE id = $1',
+      [project_id]
+    );
+
+    const clientData = await db.query(
+      'SELECT name FROM clients WHERE id = $1',
+      [client_id]
+    );
+
+    const taskTitle = `${projectData.rows[0].name} - ${clientData.rows[0].name}`;
+    const taskDescription = notes || `Contrato iniciado em ${contract_date}`;
+
+    await db.query(
+      `INSERT INTO tasks (
+        user_id, client_id, project_id, title, description, due_date,
+        status, priority, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        payload.userId,
+        client_id,
+        project_id,
+        taskTitle,
+        taskDescription,
+        delivery_date || null,
+        status || 'em_tratativa',
+        'medium',
+        notes || null
+      ]
     );
 
     return NextResponse.json({

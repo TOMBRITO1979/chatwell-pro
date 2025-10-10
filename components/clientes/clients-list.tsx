@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientForm } from './client-form';
 import { ClientDetails } from './client-details';
-import { ContractsInProgress } from '@/components/common/contracts-in-progress';
 
 interface Client {
   id: string;
@@ -301,11 +300,6 @@ export function ClientesList() {
           ))}
         </div>
       )}
-
-      {/* Em Andamento Section */}
-      <div className="mt-8">
-        <ContractsInProgress />
-      </div>
 
       {/* Form Modal */}
       {showForm && (
