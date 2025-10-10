@@ -31,7 +31,7 @@ services:
 
   # Chatwell Application
   chatwell:
-    image: tomautomations/chatwell-pro:v3.4
+    image: tomautomations/chatwell-pro:v3.5
     environment:
       # Database
       DATABASE_URL: "postgresql://chatwell:RuGc2mfJ8oJW6giog3RiJCBd5qZmWp@postgres:5432/chatwell"
