@@ -79,4 +79,4 @@ PORTAINER_UPDATE_GUIDE.md
 *.bak
 
 # Local development
-.local/
+.local/PORTAINER_ENV_VARS.txt
