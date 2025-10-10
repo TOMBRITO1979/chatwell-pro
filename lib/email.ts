@@ -229,4 +229,58 @@ export const emailTemplates = {
       <p>Atenciosamente,<br>Chatwell Pro</p>
     `
   }),
+
+  eventConfirmation: (eventTitle: string, startTime: string, endTime: string, location?: string) => ({
+    subject: `Confirmação de Agendamento: ${eventTitle}`,
+    html: `
+      <h2>✅ Agendamento Confirmado</h2>
+      <p>Seu agendamento foi confirmado com sucesso!</p>
+      <br>
+      <p><strong>Título:</strong> ${eventTitle}</p>
+      <p><strong>Data/Hora Início:</strong> ${startTime}</p>
+      <p><strong>Data/Hora Fim:</strong> ${endTime}</p>
+      ${location ? `<p><strong>Local:</strong> ${location}</p>` : ''}
+      <br>
+      <p>Aguardamos você!</p>
+      <p>Atenciosamente,<br>Chatwell Pro</p>
+    `
+  }),
+
+  dailyEventsReminder: (events: Array<{title: string, startTime: string, location?: string}>, date: string) => ({
+    subject: `📅 Seus agendamentos para ${date}`,
+    html: `
+      <h2>📅 Agendamentos para ${date}</h2>
+      <p>Você tem ${events.length} agendamento(s) para amanhã:</p>
+      <ul>
+        ${events.map(event => `
+          <li>
+            <strong>${event.title}</strong> - ${event.startTime}
+            ${event.location ? `<br>Local: ${event.location}` : ''}
+          </li>
+        `).join('')}
+      </ul>
+      <br>
+      <p>Não se esqueça!</p>
+      <p>Atenciosamente,<br>Chatwell Pro</p>
+    `
+  }),
+
+  dailyAccountsReminder: (accounts: Array<{title: string, amount: number, type: string}>, date: string) => ({
+    subject: `💰 Contas que vencem em ${date}`,
+    html: `
+      <h2>💰 Contas que vencem em ${date}</h2>
+      <p>Você tem ${accounts.length} conta(s) que vencem amanhã:</p>
+      <ul>
+        ${accounts.map(account => `
+          <li>
+            <strong>${account.title}</strong> - R$ ${account.amount.toFixed(2)}
+            <br><small>(${account.type === 'payable' ? 'A Pagar' : 'A Receber'})</small>
+          </li>
+        `).join('')}
+      </ul>
+      <br>
+      <p>Não se esqueça!</p>
+      <p>Atenciosamente,<br>Chatwell Pro</p>
+    `
+  }),
 };

@@ -26,10 +26,12 @@ export async function GET(request: NextRequest) {
              t.status, t.priority, t.estimated_hours, t.actual_hours,
              t.tags, t.notes, t.created_at, t.updated_at,
              c.name as client_name, c.id as client_id,
-             p.name as project_name, p.id as project_id
+             p.name as project_name, p.id as project_id,
+             sc.id as contract_id
       FROM tasks t
       LEFT JOIN clients c ON t.client_id = c.id
       LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN service_contracts sc ON sc.project_id = t.project_id AND sc.client_id = t.client_id
       WHERE t.user_id = $1
     `;
     const params: any[] = [payload.userId];
@@ -73,13 +75,13 @@ export async function GET(request: NextRequest) {
     // Calcular estatísticas
     const stats = {
       total: result.rows.length,
-      pending: result.rows.filter((t: any) => t.status === 'pending').length,
-      in_progress: result.rows.filter((t: any) => t.status === 'in_progress').length,
-      completed: result.rows.filter((t: any) => t.status === 'completed').length,
-      cancelled: result.rows.filter((t: any) => t.status === 'cancelled').length,
+      em_tratativa: result.rows.filter((t: any) => t.status === 'em_tratativa').length,
+      iniciado: result.rows.filter((t: any) => t.status === 'iniciado').length,
+      pendente: result.rows.filter((t: any) => t.status === 'pendente').length,
+      cancelado: result.rows.filter((t: any) => t.status === 'cancelado').length,
       high_priority: result.rows.filter((t: any) => t.priority === 'high').length,
       overdue: result.rows.filter((t: any) => {
-        if (t.status === 'completed' || t.status === 'cancelled') return false;
+        if (t.status === 'cancelado') return false;
         if (!t.due_date) return false;
         return new Date(t.due_date) < new Date();
       }).length
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
       [
         payload.userId, client_id || null, project_id || null,
         title, description || null, due_date || null,
-        status || 'pending', priority || 'medium',
+        status || 'em_tratativa', priority || 'medium',
         estimated_hours || null, actual_hours || null,
         tags || null, notes || null
       ]

@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     let query = `
       SELECT e.id, e.title, e.description, e.start_time, e.end_time,
              e.location, e.event_type, e.color, e.is_all_day, e.reminder_minutes,
+             e.phone, e.email,
              e.created_at, e.updated_at,
              c.name as client_name, c.id as client_id,
              p.name as project_name, p.id as project_id
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     const {
       title, description, start_time, end_time, location,
       event_type, color, is_all_day, reminder_minutes,
-      client_id, project_id
+      client_id, project_id, phone, email
     } = body;
 
     if (!title || !start_time || !end_time) {
@@ -97,18 +98,36 @@ export async function POST(request: NextRequest) {
       `INSERT INTO events (
         user_id, client_id, project_id, title, description,
         start_time, end_time, location, event_type, color,
-        is_all_day, reminder_minutes
+        is_all_day, reminder_minutes, phone, email
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING id, title, description, start_time, end_time, location,
-                event_type, color, is_all_day, reminder_minutes, created_at`,
+                event_type, color, is_all_day, reminder_minutes, phone, email, created_at`,
       [
         payload.userId, client_id || null, project_id || null,
         title, description || null, start_time, end_time,
         location || null, event_type || 'meeting', color || '#3B82F6',
-        is_all_day || false, reminder_minutes || 30
+        is_all_day || false, reminder_minutes || 30, phone || null, email || null
       ]
     );
+
+    // Enviar notificações de confirmação (Tarefa 4.1)
+    if (phone || email) {
+      try {
+        const { sendEventConfirmation } = await import('@/lib/notifications');
+        await sendEventConfirmation(payload.userId, {
+          title,
+          start_time,
+          end_time,
+          location,
+          phone: phone || undefined,
+          email: email || undefined
+        });
+      } catch (error) {
+        console.error('Erro ao enviar notificação de confirmação:', error);
+        // Não falhar a criação do evento se a notificação falhar
+      }
+    }
 
     return NextResponse.json({
       success: true,

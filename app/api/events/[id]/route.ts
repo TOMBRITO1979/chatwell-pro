@@ -59,7 +59,7 @@ export async function PUT(
     const {
       title, description, start_time, end_time, location,
       event_type, color, is_all_day, reminder_minutes,
-      client_id, project_id
+      client_id, project_id, phone, email
     } = body;
 
     if (!title || !start_time || !end_time) {
@@ -81,13 +81,14 @@ export async function PUT(
       `UPDATE events
        SET title = $1, description = $2, start_time = $3, end_time = $4,
            location = $5, event_type = $6, color = $7, is_all_day = $8,
-           reminder_minutes = $9, client_id = $10, project_id = $11
-       WHERE id = $12 AND user_id = $13
+           reminder_minutes = $9, client_id = $10, project_id = $11, phone = $12, email = $13
+       WHERE id = $14 AND user_id = $15
        RETURNING *`,
       [
         title, description, start_time, end_time, location,
         event_type, color, is_all_day, reminder_minutes,
-        client_id || null, project_id || null, params.id, payload.userId
+        client_id || null, project_id || null, phone || null, email || null,
+        params.id, payload.userId
       ]
     );
 

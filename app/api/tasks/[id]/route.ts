@@ -19,10 +19,12 @@ export async function GET(
     }
 
     const result = await db.query(
-      `SELECT t.*, c.name as client_name, p.name as project_name
+      `SELECT t.*, c.name as client_name, p.name as project_name,
+              sc.id as contract_id
        FROM tasks t
        LEFT JOIN clients c ON t.client_id = c.id
        LEFT JOIN projects p ON t.project_id = p.id
+       LEFT JOIN service_contracts sc ON sc.project_id = t.project_id AND sc.client_id = t.client_id
        WHERE t.id = $1 AND t.user_id = $2`,
       [params.id, payload.userId]
     );
@@ -99,6 +101,16 @@ export async function PUT(
         params.id, payload.userId
       ]
     );
+
+    // Se o status mudou, atualizar também o contrato de serviço relacionado
+    if (status && client_id && project_id) {
+      await db.query(
+        `UPDATE service_contracts
+         SET status = $1, updated_at = NOW()
+         WHERE user_id = $2 AND client_id = $3 AND project_id = $4`,
+        [status, payload.userId, client_id, project_id]
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientForm } from './client-form';
+import { ClientDetails } from './client-details';
+import { ContractsInProgress } from '@/components/common/contracts-in-progress';
 
 interface Client {
   id: string;
@@ -28,7 +30,9 @@ export function ClientesList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
 
   useEffect(() => {
@@ -110,10 +114,29 @@ export function ClientesList() {
     setShowForm(true);
   };
 
+  const handleViewDetails = (client: Client) => {
+    setSelectedClient(client);
+    setShowDetails(true);
+  };
+
   const handleFormClose = () => {
     setShowForm(false);
     setEditingClient(null);
     loadClients();
+  };
+
+  const handleDetailsClose = () => {
+    setShowDetails(false);
+    setSelectedClient(null);
+    loadClients();
+  };
+
+  const handleEditFromDetails = () => {
+    if (selectedClient) {
+      setEditingClient(selectedClient);
+      setShowDetails(false);
+      setShowForm(true);
+    }
   };
 
   return (
@@ -209,20 +232,24 @@ export function ClientesList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map((client) => (
-            <Card key={client.id} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={client.id}
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handleViewDetails(client)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-lg">{client.name}</CardTitle>
                     <span className={`inline-block px-2 py-1 text-xs rounded-full mt-2 ${
-                      client.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
+                      client.status === 'active'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
                       {client.status === 'active' ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -275,11 +302,25 @@ export function ClientesList() {
         </div>
       )}
 
+      {/* Em Andamento Section */}
+      <div className="mt-8">
+        <ContractsInProgress />
+      </div>
+
       {/* Form Modal */}
       {showForm && (
         <ClientForm
           client={editingClient}
           onClose={handleFormClose}
+        />
+      )}
+
+      {/* Details Modal */}
+      {showDetails && selectedClient && (
+        <ClientDetails
+          client={selectedClient}
+          onClose={handleDetailsClose}
+          onEdit={handleEditFromDetails}
         />
       )}
     </div>

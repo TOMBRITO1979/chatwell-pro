@@ -37,7 +37,9 @@ export function EventForm({ event, onClose }: EventFormProps) {
     is_all_day: false,
     reminder_minutes: 30,
     client_id: '',
-    project_id: ''
+    project_id: '',
+    phone: '',
+    email: ''
   });
 
   useEffect(() => {
@@ -69,7 +71,9 @@ export function EventForm({ event, onClose }: EventFormProps) {
         is_all_day: event.is_all_day || false,
         reminder_minutes: event.reminder_minutes || 30,
         client_id: event.client_id || '',
-        project_id: event.project_id || ''
+        project_id: event.project_id || '',
+        phone: event.phone || '',
+        email: event.email || ''
       });
     }
   }, [event]);
@@ -340,6 +344,31 @@ export function EventForm({ event, onClose }: EventFormProps) {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Telefone/WhatsApp (opcional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Ex: 5511999999999"
+                />
+                <p className="text-xs text-gray-500 mt-1">Para receber notificações via WhatsApp</p>
+              </div>
+              <div>
+                <Label htmlFor="email">E-mail (opcional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Ex: contato@exemplo.com"
+                />
+                <p className="text-xs text-gray-500 mt-1">Para receber notificações via e-mail</p>
               </div>
             </div>
 

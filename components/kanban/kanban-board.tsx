@@ -11,14 +11,15 @@ interface Task {
   title: string;
   description: string | null;
   due_date: string | null;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'em_tratativa' | 'iniciado' | 'pendente' | 'cancelado';
   priority: 'low' | 'medium' | 'high';
   client_name: string | null;
   project_name: string | null;
+  contract_id?: string | null;
 }
 
 interface Column {
-  id: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  id: 'em_tratativa' | 'iniciado' | 'pendente' | 'cancelado';
   title: string;
   color: string;
 }
@@ -31,10 +32,10 @@ export function KanbanBoard() {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   const columns: Column[] = [
-    { id: 'pending', title: 'A Fazer', color: 'bg-yellow-100 border-yellow-300' },
-    { id: 'in_progress', title: 'Em Progresso', color: 'bg-blue-100 border-blue-300' },
-    { id: 'completed', title: 'Concluído', color: 'bg-green-100 border-green-300' },
-    { id: 'cancelled', title: 'Cancelado', color: 'bg-red-100 border-red-300' }
+    { id: 'em_tratativa', title: 'Em Tratativa', color: 'bg-yellow-100 border-yellow-300' },
+    { id: 'iniciado', title: 'Em Andamento', color: 'bg-blue-100 border-blue-300' },
+    { id: 'pendente', title: 'Pendente', color: 'bg-orange-100 border-orange-300' },
+    { id: 'cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-300' }
   ];
 
   useEffect(() => {
@@ -125,6 +126,8 @@ export function KanbanBoard() {
 
     try {
       const token = localStorage.getItem('token');
+
+      // Atualizar a tarefa
       const response = await fetch(`/api/tasks/${draggedTask.id}`, {
         method: 'PUT',
         headers: {
@@ -140,6 +143,20 @@ export function KanbanBoard() {
       const data = await response.json();
 
       if (data.success) {
+        // Se a tarefa está associada a um contrato, atualizar o status do contrato também
+        if (draggedTask.contract_id) {
+          await fetch(`/api/service-contracts/${draggedTask.contract_id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              status: newStatus
+            })
+          });
+        }
+
         loadTasks();
       }
     } catch (error) {
@@ -167,7 +184,7 @@ export function KanbanBoard() {
   };
 
   const isOverdue = (task: Task) => {
-    if (task.status === 'completed' || task.status === 'cancelled') return false;
+    if (task.status === 'cancelado') return false;
     if (!task.due_date) return false;
     return new Date(task.due_date) < new Date();
   };

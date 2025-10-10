@@ -57,8 +57,8 @@ const navigationItems = [
     color: 'text-chatwell-green'
   },
   {
-    title: 'Projetos',
-    href: '/projetos',
+    title: 'Serviços',
+    href: '/servicos',
     icon: Briefcase,
     color: 'text-chatwell-blue'
   },

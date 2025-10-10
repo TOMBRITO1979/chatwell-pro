@@ -57,7 +57,8 @@ export async function PUT(
     const body = await request.json();
     const {
       name, description, start_date, end_date, budget,
-      status, priority, progress, color, client_id
+      status, priority, progress, color, client_id,
+      service_type, image_url
     } = body;
 
     if (!name) {
@@ -79,13 +80,15 @@ export async function PUT(
       `UPDATE projects
        SET name = $1, description = $2, start_date = $3, end_date = $4,
            budget = $5, status = $6, priority = $7, progress = $8,
-           color = $9, client_id = $10, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $11 AND user_id = $12
+           color = $9, client_id = $10, service_type = $11, image_url = $12,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $13 AND user_id = $14
        RETURNING *`,
       [
         name, description || null, start_date || null, end_date || null,
         budget || 0, status, priority, progress || 0,
-        color || '#3B82F6', client_id || null, params.id, payload.userId
+        color || '#3B82F6', client_id || null, service_type, image_url || null,
+        params.id, payload.userId
       ]
     );
 

@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     let query = `
       SELECT p.id, p.name, p.description, p.start_date, p.end_date,
              p.budget, p.status, p.priority, p.color, p.progress,
+             p.service_type, p.image_url,
              p.created_at, p.updated_at,
              c.name as client_name, c.id as client_id
       FROM projects p
@@ -92,7 +93,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       name, description, start_date, end_date, budget,
-      status, priority, color, progress, client_id
+      status, priority, color, progress, client_id,
+      service_type, image_url
     } = body;
 
     if (!name) {
@@ -104,16 +106,16 @@ export async function POST(request: NextRequest) {
     const result = await db.query(
       `INSERT INTO projects (
         user_id, client_id, name, description, start_date, end_date,
-        budget, status, priority, color, progress
+        budget, status, priority, color, progress, service_type, image_url
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id, name, description, start_date, end_date, budget,
-                status, priority, color, progress, created_at`,
+                status, priority, color, progress, service_type, image_url, created_at`,
       [
         payload.userId, client_id || null, name, description || null,
         start_date || null, end_date || null, budget || 0,
-        status || 'planning', priority || 'medium', color || '#3B82F6',
-        progress || 0
+        status || 'em_tratativa', priority || 'medium', color || '#3B82F6',
+        progress || 0, service_type || 'project', image_url || null
       ]
     );
 
