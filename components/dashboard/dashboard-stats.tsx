@@ -11,16 +11,17 @@ import Link from 'next/link';
 interface UpcomingEvent {
   id: string;
   title: string;
-  start_date: string;
-  end_date: string | null;
-  type: string;
+  start_time: string;
+  end_time: string | null;
+  event_type: string;
   phone?: string;
   email?: string;
 }
 
 interface UpcomingAccount {
   id: string;
-  description: string;
+  title: string;
+  description?: string;
   amount: string;
   due_date: string;
   type: string;
@@ -40,7 +41,7 @@ interface Purchase {
   item_name: string;
   quantity: number;
   estimated_price: string | null;
-  status: string;
+  purchased: boolean;
 }
 
 export function DashboardStats() {
@@ -100,7 +101,7 @@ export function DashboardStats() {
         if (tasksData.success) {
           // Show only pending and in-progress tasks
           const activeTasks = (tasksData.tasks || []).filter(
-            (t: Task) => t.status === 'pendente' || t.status === 'iniciado' || t.status === 'em_tratativa'
+            (t: Task) => t.status === 'pending' || t.status === 'in_progress'
           );
           setTasks(activeTasks.slice(0, 5));
         }
@@ -116,7 +117,7 @@ export function DashboardStats() {
         if (purchasesData.success) {
           // Show only pending purchases
           const pendingPurchases = (purchasesData.purchases || []).filter(
-            (p: Purchase) => p.status === 'pending'
+            (p: Purchase) => !p.purchased
           );
           setPurchases(pendingPurchases.slice(0, 5));
         }
@@ -144,7 +145,7 @@ export function DashboardStats() {
     const laterEvents: UpcomingEvent[] = [];
 
     events.forEach(event => {
-      const eventDate = new Date(event.start_date);
+      const eventDate = new Date(event.start_time);
       eventDate.setHours(0, 0, 0, 0);
 
       if (eventDate.getTime() === today.getTime()) {
@@ -277,7 +278,7 @@ export function DashboardStats() {
                   {eventsToday.map((event) => (
                     <div key={event.id} className="text-sm border-l-2 border-blue-300 pl-2">
                       <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDate(event.start_date)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
                     </div>
                   ))}
                 </div>
@@ -303,7 +304,7 @@ export function DashboardStats() {
                   {eventsTomorrow.map((event) => (
                     <div key={event.id} className="text-sm border-l-2 border-green-300 pl-2">
                       <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDate(event.start_date)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
                     </div>
                   ))}
                 </div>
@@ -329,7 +330,7 @@ export function DashboardStats() {
                   {eventsLater.map((event) => (
                     <div key={event.id} className="text-sm border-l-2 border-purple-300 pl-2">
                       <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDateShort(event.start_date)}</p>
+                      <p className="text-xs text-gray-500">{formatDateShort(event.start_time)}</p>
                     </div>
                   ))}
                 </div>
@@ -370,7 +371,7 @@ export function DashboardStats() {
                 <div className="space-y-2">
                   {accountsToday.map((account) => (
                     <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <p className="font-medium line-clamp-1">{account.title}</p>
                       <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
                         {formatCurrency(account.amount)}
                       </p>
@@ -398,7 +399,7 @@ export function DashboardStats() {
                 <div className="space-y-2">
                   {accountsTomorrow.map((account) => (
                     <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <p className="font-medium line-clamp-1">{account.title}</p>
                       <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
                         {formatCurrency(account.amount)}
                       </p>
@@ -426,7 +427,7 @@ export function DashboardStats() {
                 <div className="space-y-2">
                   {accountsLater.map((account) => (
                     <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.description}</p>
+                      <p className="font-medium line-clamp-1">{account.title}</p>
                       <div className="flex items-center justify-between">
                         <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
                           {formatCurrency(account.amount)}
