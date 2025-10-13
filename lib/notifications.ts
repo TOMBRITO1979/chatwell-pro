@@ -81,7 +81,11 @@ export async function sendEventConfirmation(
         (event.location ? `📍 *Local:* ${event.location}\n` : '') +
         `\nAguardamos você! 🤝`;
 
-      await wahaClient.sendText(event.phone, message);
+      // Formatar número no formato WhatsApp (adicionar @c.us se não tiver)
+      const chatId = event.phone.includes('@') ? event.phone : `${event.phone}@c.us`;
+
+      console.log(`📤 Enviando WhatsApp de confirmação para ${chatId}...`);
+      await wahaClient.sendText(chatId, message);
       console.log(`✅ WhatsApp de confirmação enviado para ${event.phone}`);
     } catch (error: any) {
       console.error('❌ Erro ao enviar WhatsApp de confirmação:', error.message || error);

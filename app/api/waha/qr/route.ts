@@ -33,6 +33,19 @@ export async function GET(request: NextRequest) {
     const client = createWAHAClient(config.api_url, config.session_name, config.api_key);
 
     try {
+      // Primeiro verifica o status da sessão
+      const sessionStatus = await client.getSessionStatus();
+
+      // Se já estiver conectado, não precisa de QR Code
+      if (sessionStatus.status === 'WORKING') {
+        return NextResponse.json({
+          success: false,
+          message: 'Sessão já está conectada. Não é necessário escanear QR Code.',
+          status: 'already_connected'
+        }, { status: 400 });
+      }
+
+      // Obter QR Code via screenshot
       const qrCode = await client.getQRCode();
 
       // Salvar QR Code no banco
@@ -43,15 +56,18 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        qr_code: qrCode
+        qr_code: qrCode,
+        message: 'QR Code obtido com sucesso! Escaneie com WhatsApp.'
       });
     } catch (error: any) {
-      // Se já estiver conectado ou não houver QR disponível
-      if (error.response?.status === 404) {
+      console.error('Erro ao obter QR Code do WAHA:', error);
+
+      // Se não houver QR disponível
+      if (error.response?.status === 404 || error.response?.status === 400) {
         return NextResponse.json({
           success: false,
-          message: 'QR Code não disponível. A sessão pode já estar conectada ou não foi iniciada.',
-          status: 'connected_or_not_started'
+          message: 'QR Code não disponível. Verifique se a sessão foi iniciada corretamente.',
+          status: 'not_available'
         }, { status: 404 });
       }
       throw error;

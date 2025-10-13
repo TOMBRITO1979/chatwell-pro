@@ -160,19 +160,16 @@ export async function POST(request: NextRequest) {
     // Enviar notificações de confirmação de forma ASSÍNCRONA (não bloqueia resposta)
     if (phone || email) {
       // Fire and forget - não usa await para não bloquear a resposta
-      import('@/lib/notifications').then(({ sendEventConfirmation }) => {
-        sendEventConfirmation(payload.userId, {
-          title,
-          start_time,
-          end_time,
-          location,
-          phone: phone || undefined,
-          email: email || undefined
-        }).catch(error => {
-          console.error('Erro ao enviar notificação de confirmação:', error);
-        });
+      const { sendEventConfirmation } = await import('@/lib/notifications');
+      sendEventConfirmation(payload.userId, {
+        title,
+        start_time,
+        end_time,
+        location,
+        phone: phone || undefined,
+        email: email || undefined
       }).catch(error => {
-        console.error('Erro ao importar módulo de notificações:', error);
+        console.error('Erro ao enviar notificação de confirmação:', error);
       });
     }
 

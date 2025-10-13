@@ -76,13 +76,35 @@ export class WAHAClient {
   }
 
   /**
-   * Obtém QR Code para autenticação
+   * Obtém QR Code para autenticação (via screenshot)
    */
   async getQRCode(): Promise<string> {
-    const response = await this.client.get(`/api/sessions/${this.sessionName}/auth/qr`, {
-      responseType: 'text',
-    });
-    return response.data;
+    try {
+      // Tenta primeiro o endpoint /api/screenshot (mais novo)
+      const response = await this.client.get(`/api/screenshot`, {
+        params: {
+          session: this.sessionName,
+        },
+        responseType: 'arraybuffer',
+      });
+
+      // Converter para base64
+      const base64 = Buffer.from(response.data, 'binary').toString('base64');
+      return `data:image/jpeg;base64,${base64}`;
+    } catch (error: any) {
+      // Fallback para o endpoint antigo /api/sessions/{session}/auth/qr
+      if (error.response?.status === 404) {
+        try {
+          const response = await this.client.get(`/api/sessions/${this.sessionName}/auth/qr`, {
+            responseType: 'text',
+          });
+          return response.data;
+        } catch (fallbackError) {
+          throw fallbackError;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
