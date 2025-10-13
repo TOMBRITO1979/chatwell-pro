@@ -6,6 +6,7 @@ import {
   ChevronRight, ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 
 interface UpcomingEvent {
@@ -103,7 +104,7 @@ export function DashboardStats() {
           const activeTasks = (tasksData.tasks || []).filter(
             (t: Task) => t.status === 'pending' || t.status === 'in_progress'
           );
-          setTasks(activeTasks.slice(0, 5));
+          setTasks(activeTasks);
         }
       }
 
@@ -119,7 +120,7 @@ export function DashboardStats() {
           const pendingPurchases = (purchasesData.purchases || []).filter(
             (p: Purchase) => !p.purchased
           );
-          setPurchases(pendingPurchases.slice(0, 5));
+          setPurchases(pendingPurchases);
         }
       }
 
@@ -131,12 +132,10 @@ export function DashboardStats() {
   };
 
   const categorizeEvents = (events: UpcomingEvent[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
     const dayAfterTomorrow = new Date(today);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
@@ -145,29 +144,34 @@ export function DashboardStats() {
     const laterEvents: UpcomingEvent[] = [];
 
     events.forEach(event => {
-      const eventDate = new Date(event.start_time);
-      eventDate.setHours(0, 0, 0, 0);
+      const eventDateTime = new Date(event.start_time);
+      const eventDate = new Date(eventDateTime.getFullYear(), eventDateTime.getMonth(), eventDateTime.getDate());
 
-      if (eventDate.getTime() === today.getTime()) {
+      const todayTime = today.getTime();
+      const tomorrowTime = tomorrow.getTime();
+      const eventTime = eventDate.getTime();
+
+      if (eventTime === todayTime) {
         todayEvents.push(event);
-      } else if (eventDate.getTime() === tomorrow.getTime()) {
+      } else if (eventTime === tomorrowTime) {
         tomorrowEvents.push(event);
-      } else if (eventDate > tomorrow) {
+      } else if (eventTime >= dayAfterTomorrow.getTime()) {
         laterEvents.push(event);
       }
     });
 
     setEventsToday(todayEvents);
     setEventsTomorrow(tomorrowEvents);
-    setEventsLater(laterEvents.slice(0, 5));
+    setEventsLater(laterEvents);
   };
 
   const categorizeAccounts = (accounts: UpcomingAccount[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
     const todayAccounts: UpcomingAccount[] = [];
     const tomorrowAccounts: UpcomingAccount[] = [];
@@ -177,21 +181,26 @@ export function DashboardStats() {
     const pendingAccounts = accounts.filter(acc => acc.status === 'pending');
 
     pendingAccounts.forEach(account => {
-      const dueDate = new Date(account.due_date);
-      dueDate.setHours(0, 0, 0, 0);
+      const dueDateObj = new Date(account.due_date);
+      const dueDate = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate());
 
-      if (dueDate.getTime() === today.getTime()) {
+      const todayTime = today.getTime();
+      const tomorrowTime = tomorrow.getTime();
+      const dueTime = dueDate.getTime();
+      const sevenDaysTime = sevenDaysLater.getTime();
+
+      if (dueTime === todayTime) {
         todayAccounts.push(account);
-      } else if (dueDate.getTime() === tomorrow.getTime()) {
+      } else if (dueTime === tomorrowTime) {
         tomorrowAccounts.push(account);
-      } else if (dueDate > tomorrow && dueDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+      } else if (dueTime > tomorrowTime && dueTime <= sevenDaysTime) {
         laterAccounts.push(account);
       }
     });
 
     setAccountsToday(todayAccounts);
     setAccountsTomorrow(tomorrowAccounts);
-    setAccountsLater(laterAccounts.slice(0, 5));
+    setAccountsLater(laterAccounts);
   };
 
   const formatCurrency = (value: string) => {
@@ -274,14 +283,16 @@ export function DashboardStats() {
               {eventsToday.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
               ) : (
-                <div className="space-y-2">
-                  {eventsToday.map((event) => (
-                    <div key={event.id} className="text-sm border-l-2 border-blue-300 pl-2">
-                      <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {eventsToday.map((event) => (
+                      <div key={event.id} className="text-sm border-l-2 border-blue-300 pl-2">
+                        <p className="font-medium line-clamp-1">{event.title}</p>
+                        <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -300,14 +311,16 @@ export function DashboardStats() {
               {eventsTomorrow.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
               ) : (
-                <div className="space-y-2">
-                  {eventsTomorrow.map((event) => (
-                    <div key={event.id} className="text-sm border-l-2 border-green-300 pl-2">
-                      <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {eventsTomorrow.map((event) => (
+                      <div key={event.id} className="text-sm border-l-2 border-green-300 pl-2">
+                        <p className="font-medium line-clamp-1">{event.title}</p>
+                        <p className="text-xs text-gray-500">{formatDate(event.start_time)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -326,14 +339,16 @@ export function DashboardStats() {
               {eventsLater.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum evento</p>
               ) : (
-                <div className="space-y-2">
-                  {eventsLater.map((event) => (
-                    <div key={event.id} className="text-sm border-l-2 border-purple-300 pl-2">
-                      <p className="font-medium line-clamp-1">{event.title}</p>
-                      <p className="text-xs text-gray-500">{formatDateShort(event.start_time)}</p>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {eventsLater.map((event) => (
+                      <div key={event.id} className="text-sm border-l-2 border-purple-300 pl-2">
+                        <p className="font-medium line-clamp-1">{event.title}</p>
+                        <p className="text-xs text-gray-500">{formatDateShort(event.start_time)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -368,16 +383,18 @@ export function DashboardStats() {
               {accountsToday.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
               ) : (
-                <div className="space-y-2">
-                  {accountsToday.map((account) => (
-                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.title}</p>
-                      <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(account.amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {accountsToday.map((account) => (
+                      <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                        <p className="font-medium line-clamp-1">{account.title}</p>
+                        <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(account.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -396,16 +413,18 @@ export function DashboardStats() {
               {accountsTomorrow.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
               ) : (
-                <div className="space-y-2">
-                  {accountsTomorrow.map((account) => (
-                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.title}</p>
-                      <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(account.amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {accountsTomorrow.map((account) => (
+                      <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                        <p className="font-medium line-clamp-1">{account.title}</p>
+                        <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(account.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -424,19 +443,21 @@ export function DashboardStats() {
               {accountsLater.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Nenhum vencimento</p>
               ) : (
-                <div className="space-y-2">
-                  {accountsLater.map((account) => (
-                    <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
-                      <p className="font-medium line-clamp-1">{account.title}</p>
-                      <div className="flex items-center justify-between">
-                        <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(account.amount)}
-                        </p>
-                        <p className="text-xs text-gray-500">{formatDateShort(account.due_date)}</p>
+                <ScrollArea className="h-48">
+                  <div className="space-y-2 pr-4">
+                    {accountsLater.map((account) => (
+                      <div key={account.id} className={`text-sm border-l-2 ${account.type === 'receivable' ? 'border-green-400' : 'border-red-400'} pl-2`}>
+                        <p className="font-medium line-clamp-1">{account.title}</p>
+                        <div className="flex items-center justify-between">
+                          <p className={`text-xs font-semibold ${account.type === 'receivable' ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(account.amount)}
+                          </p>
+                          <p className="text-xs text-gray-500">{formatDateShort(account.due_date)}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -463,24 +484,26 @@ export function DashboardStats() {
             {tasks.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-8">Nenhuma tarefa pendente</p>
             ) : (
-              <div className="space-y-3">
-                {tasks.map((task) => (
-                  <div key={task.id} className="border-l-2 border-blue-400 pl-3 py-2">
-                    <p className="font-medium text-sm line-clamp-1">{task.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
-                        {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
-                      </span>
-                      {task.due_date && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatDateShort(task.due_date)}
+              <ScrollArea className="h-64">
+                <div className="space-y-3 pr-4">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="border-l-2 border-blue-400 pl-3 py-2">
+                      <p className="font-medium text-sm line-clamp-1">{task.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
+                          {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                         </span>
-                      )}
+                        {task.due_date && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDateShort(task.due_date)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
@@ -503,23 +526,25 @@ export function DashboardStats() {
             {purchases.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-8">Nenhum item pendente</p>
             ) : (
-              <div className="space-y-3">
-                {purchases.map((purchase) => (
-                  <div key={purchase.id} className="border-l-2 border-green-400 pl-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm line-clamp-1">{purchase.item_name}</p>
-                      <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                        {purchase.quantity}x
-                      </span>
+              <ScrollArea className="h-64">
+                <div className="space-y-3 pr-4">
+                  {purchases.map((purchase) => (
+                    <div key={purchase.id} className="border-l-2 border-green-400 pl-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm line-clamp-1">{purchase.item_name}</p>
+                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                          {purchase.quantity}x
+                        </span>
+                      </div>
+                      {purchase.estimated_price && (
+                        <p className="text-xs text-green-600 font-semibold mt-1">
+                          ~{formatCurrency(purchase.estimated_price)}
+                        </p>
+                      )}
                     </div>
-                    {purchase.estimated_price && (
-                      <p className="text-xs text-green-600 font-semibold mt-1">
-                        ~{formatCurrency(purchase.estimated_price)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
