@@ -205,6 +205,49 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX idx_events_user_id ON events(user_id);
 
 -- ===========================================
+-- TABELA: waha_settings (Configurações WhatsApp)
+-- ===========================================
+CREATE TABLE IF NOT EXISTS waha_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  api_url VARCHAR(255) NOT NULL,
+  api_key VARCHAR(255),
+  session_name VARCHAR(100) NOT NULL DEFAULT 'default',
+  webhook_url VARCHAR(255),
+  is_active BOOLEAN DEFAULT false,
+  status VARCHAR(50) DEFAULT 'disconnected',
+  qr_code TEXT,
+  last_sync TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+CREATE INDEX idx_waha_settings_user_id ON waha_settings(user_id);
+CREATE INDEX idx_waha_settings_status ON waha_settings(status);
+
+-- ===========================================
+-- TABELA: smtp_settings (Configurações SMTP)
+-- ===========================================
+CREATE TABLE IF NOT EXISTS smtp_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  smtp_host VARCHAR(255) NOT NULL,
+  smtp_port INTEGER NOT NULL DEFAULT 587,
+  smtp_secure BOOLEAN DEFAULT false,
+  smtp_user VARCHAR(255) NOT NULL,
+  smtp_password VARCHAR(255) NOT NULL,
+  from_name VARCHAR(255),
+  from_email VARCHAR(255) NOT NULL,
+  is_active BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+CREATE INDEX idx_smtp_settings_user_id ON smtp_settings(user_id);
+
+-- ===========================================
 -- FUNÇÕES: Updated_at trigger
 -- ===========================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -225,3 +268,5 @@ CREATE TRIGGER update_expenses_business_updated_at BEFORE UPDATE ON expenses_bus
 CREATE TRIGGER update_expenses_personal_updated_at BEFORE UPDATE ON expenses_personal FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_purchases_updated_at BEFORE UPDATE ON purchases FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_waha_settings_updated_at BEFORE UPDATE ON waha_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_smtp_settings_updated_at BEFORE UPDATE ON smtp_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
