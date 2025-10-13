@@ -125,7 +125,8 @@ export function AccountForm({ account, onClose }: AccountFormProps) {
         amount: parseFloat(formData.amount),
         client_id: formData.client_id || null,
         project_id: formData.project_id || null,
-        paid_date: formData.paid_date || null
+        paid_date: formData.paid_date || null,
+        recurring_interval: formData.recurring ? (parseInt(formData.recurring_interval) || null) : null
       };
 
       const response = await fetch(url, {
@@ -269,6 +270,47 @@ export function AccountForm({ account, onClose }: AccountFormProps) {
                   <option value="overdue">Vencido</option>
                 </select>
               </div>
+            </div>
+
+            {/* Recorrência Section */}
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="recurring"
+                  checked={formData.recurring}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    recurring: e.target.checked,
+                    recurring_interval: e.target.checked ? formData.recurring_interval : ''
+                  })}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <Label htmlFor="recurring" className="cursor-pointer font-semibold">
+                  Conta Recorrente
+                </Label>
+              </div>
+
+              {formData.recurring && (
+                <div>
+                  <Label htmlFor="recurring_interval">
+                    Repetir a cada quantos dias? *
+                  </Label>
+                  <Input
+                    id="recurring_interval"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={formData.recurring_interval}
+                    onChange={(e) => setFormData({ ...formData, recurring_interval: e.target.value })}
+                    required={formData.recurring}
+                    placeholder="Ex: 30 (para mensal), 7 (para semanal)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Exemplos: 7 dias (semanal), 15 dias (quinzenal), 30 dias (mensal), 90 dias (trimestral)
+                  </p>
+                </div>
+              )}
             </div>
 
             {formData.status === 'paid' && (

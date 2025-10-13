@@ -87,7 +87,9 @@ export function DashboardStats() {
 
       if (accountsResponse.ok) {
         const accountsData = await accountsResponse.json();
+        console.log('Accounts data:', accountsData);
         if (accountsData.success) {
+          console.log('Categorizing accounts:', accountsData.accounts);
           categorizeAccounts(accountsData.accounts || []);
         }
       }
@@ -99,11 +101,13 @@ export function DashboardStats() {
 
       if (tasksResponse.ok) {
         const tasksData = await tasksResponse.json();
+        console.log('Tasks data:', tasksData);
         if (tasksData.success) {
-          // Show only pending and in-progress tasks
+          // Show only active tasks (pendente, iniciado, em_tratativa)
           const activeTasks = (tasksData.tasks || []).filter(
-            (t: Task) => t.status === 'pending' || t.status === 'in_progress'
+            (t: Task) => t.status === 'pendente' || t.status === 'iniciado' || t.status === 'em_tratativa'
           );
+          console.log('Active tasks:', activeTasks);
           setTasks(activeTasks);
         }
       }
@@ -166,6 +170,7 @@ export function DashboardStats() {
   };
 
   const categorizeAccounts = (accounts: UpcomingAccount[]) => {
+    console.log('Categorizing accounts - input:', accounts);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
@@ -173,12 +178,15 @@ export function DashboardStats() {
     const sevenDaysLater = new Date(today);
     sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
+    console.log('Date ranges:', { today, tomorrow, sevenDaysLater });
+
     const todayAccounts: UpcomingAccount[] = [];
     const tomorrowAccounts: UpcomingAccount[] = [];
     const laterAccounts: UpcomingAccount[] = [];
 
     // Filter only pending accounts
     const pendingAccounts = accounts.filter(acc => acc.status === 'pending');
+    console.log('Pending accounts:', pendingAccounts);
 
     pendingAccounts.forEach(account => {
       const dueDateObj = new Date(account.due_date);
@@ -189,15 +197,21 @@ export function DashboardStats() {
       const dueTime = dueDate.getTime();
       const sevenDaysTime = sevenDaysLater.getTime();
 
+      console.log(`Account ${account.title}: due=${dueDate.toISOString()}, status=${account.status}`);
+
       if (dueTime === todayTime) {
         todayAccounts.push(account);
+        console.log('  -> Added to TODAY');
       } else if (dueTime === tomorrowTime) {
         tomorrowAccounts.push(account);
+        console.log('  -> Added to TOMORROW');
       } else if (dueTime > tomorrowTime && dueTime <= sevenDaysTime) {
         laterAccounts.push(account);
+        console.log('  -> Added to LATER');
       }
     });
 
+    console.log('Categorization result:', { todayAccounts, tomorrowAccounts, laterAccounts });
     setAccountsToday(todayAccounts);
     setAccountsTomorrow(tomorrowAccounts);
     setAccountsLater(laterAccounts);
