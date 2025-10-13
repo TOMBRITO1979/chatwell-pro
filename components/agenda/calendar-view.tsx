@@ -18,6 +18,8 @@ interface Event {
   color: string;
   is_all_day: boolean;
   reminder_minutes: number;
+  phone: string | null;
+  email: string | null;
   client_name: string | null;
   project_name: string | null;
   client_id: string | null;
@@ -512,6 +514,30 @@ export function CalendarView() {
                           <div>📊 {event.project_name}</div>
                         )}
                       </div>
+
+                      {/* Contact Information */}
+                      {(event.phone || event.email) && (
+                        <div className="flex flex-wrap gap-4 text-sm mt-3 pt-3 border-t border-gray-200">
+                          {event.phone && (
+                            <a
+                              href={`https://wa.me/${event.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:underline"
+                            >
+                              📱 WhatsApp: {event.phone}
+                            </a>
+                          )}
+                          {event.email && (
+                            <a
+                              href={`mailto:${event.email}`}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              ✉️ Email: {event.email}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
