@@ -36,8 +36,11 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/database ./database
+COPY --from=builder /app/scripts ./scripts
 
 # Set correct permissions
+RUN chmod +x /app/scripts/docker-entrypoint.sh
 RUN chown -R nextjs:nodejs /app
 
 USER nextjs
@@ -47,4 +50,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/app/scripts/docker-entrypoint.sh"]

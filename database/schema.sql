@@ -195,6 +195,8 @@ CREATE TABLE IF NOT EXISTS events (
   color VARCHAR(7) DEFAULT '#3B82F6',
   is_all_day BOOLEAN DEFAULT false,
   reminder_minutes INTEGER DEFAULT 30,
+  phone VARCHAR(20),
+  email VARCHAR(255),
   google_calendar_id VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
