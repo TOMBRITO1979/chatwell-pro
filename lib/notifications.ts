@@ -51,26 +51,71 @@ export async function sendEventConfirmation(
   // Enviar WhatsApp se fornecido
   if (event.phone) {
     try {
+      console.log(`\n========================================`);
+      console.log(`📱 INICIANDO ENVIO DE WHATSAPP`);
+      console.log(`========================================`);
+      console.log(`📞 Telefone recebido: "${event.phone}"`);
+      console.log(`📋 Título do evento: "${event.title}"`);
+      console.log(`👤 User ID: ${userId}`);
+
+      // Buscar configurações WAHA do banco de dados
+      const { db } = await import('./db');
+      const configResult = await db.query(
+        'SELECT api_url, api_key, session_name, is_active FROM waha_settings WHERE user_id = $1',
+        [userId]
+      );
+
+      if (configResult.rows.length === 0) {
+        console.error(`❌ Configurações WAHA não encontradas para o usuário ${userId}`);
+        console.error(`💡 Acesse /configuracoes e configure a integração WhatsApp (WAHA) antes de enviar mensagens`);
+        console.log(`========================================\n`);
+        return;
+      }
+
+      const config = configResult.rows[0];
+
+      if (!config.is_active) {
+        console.error(`❌ Integração WAHA está DESATIVADA para o usuário ${userId}`);
+        console.error(`💡 Acesse /configuracoes e ative a integração WhatsApp (WAHA)`);
+        console.log(`========================================\n`);
+        return;
+      }
+
+      console.log(`⚙️  WAHA Config do banco:`);
+      console.log(`   - URL: ${config.api_url}`);
+      console.log(`   - Session: ${config.session_name}`);
+      console.log(`   - API Key: ${config.api_key ? '***configurada***' : 'não configurada'}`);
+      console.log(`   - Ativo: ${config.is_active ? 'SIM' : 'NÃO'}`);
+
       const wahaClient = createWAHAClient(
-        DEFAULT_WAHA_CONFIG.apiUrl,
-        DEFAULT_WAHA_CONFIG.sessionName,
-        DEFAULT_WAHA_CONFIG.apiKey
+        config.api_url,
+        config.session_name,
+        config.api_key
       );
 
       // Verifica status da sessão antes de enviar
       let sessionStatus;
       try {
+        console.log(`\n🔍 Verificando status da sessão...`);
         sessionStatus = await wahaClient.getSessionStatus();
-        console.log(`📱 Status da sessão WAHA: ${sessionStatus.status}`);
+        console.log(`📱 Status da sessão: ${sessionStatus.status}`);
+        console.log(`📋 Dados da sessão:`, JSON.stringify(sessionStatus, null, 2));
 
         if (sessionStatus.status !== 'WORKING') {
-          console.error(`❌ Sessão WAHA não está ativa: ${sessionStatus.status}`);
-          console.error('💡 Acesse /configuracoes para reconectar o WhatsApp');
+          console.error(`\n❌ ERRO: Sessão WAHA não está ativa!`);
+          console.error(`   Status atual: ${sessionStatus.status}`);
+          console.error(`   Status esperado: WORKING`);
+          console.error(`💡 Acesse /configuracoes para reconectar o WhatsApp`);
+          console.log(`========================================\n`);
           return;
         }
+        console.log(`✅ Sessão está ativa e pronta para enviar mensagens`);
       } catch (statusError: any) {
-        console.error('❌ Erro ao verificar status da sessão WAHA:', statusError.message);
-        console.error('💡 Verifique se o serviço WAHA está rodando e acessível');
+        console.error(`\n❌ ERRO ao verificar status da sessão WAHA!`);
+        console.error(`   Mensagem: ${statusError.message}`);
+        console.error(`   Stack:`, statusError.stack);
+        console.error(`💡 Verifique se o serviço WAHA está rodando e acessível em ${DEFAULT_WAHA_CONFIG.apiUrl}`);
+        console.log(`========================================\n`);
         return;
       }
 
@@ -82,17 +127,40 @@ export async function sendEventConfirmation(
         `\nAguardamos você! 🤝`;
 
       // Formatar número no formato WhatsApp (adicionar @c.us se não tiver)
-      const chatId = event.phone.includes('@') ? event.phone : `${event.phone}@c.us`;
+      let chatId = event.phone.trim();
 
-      console.log(`📤 Enviando WhatsApp de confirmação para ${chatId}...`);
-      await wahaClient.sendText(chatId, message);
-      console.log(`✅ WhatsApp de confirmação enviado para ${event.phone}`);
-    } catch (error: any) {
-      console.error('❌ Erro ao enviar WhatsApp de confirmação:', error.message || error);
-      if (error.response) {
-        console.error('📋 Detalhes da resposta:', error.response.data);
-        console.error('🔢 Status code:', error.response.status);
+      // Remove caracteres não numéricos exceto @
+      if (!chatId.includes('@')) {
+        chatId = chatId.replace(/\D/g, '');
+        chatId = `${chatId}@c.us`;
       }
+
+      console.log(`\n📝 Preparando envio:`);
+      console.log(`   Número original: "${event.phone}"`);
+      console.log(`   Chat ID formatado: "${chatId}"`);
+      console.log(`   Tamanho da mensagem: ${message.length} caracteres`);
+      console.log(`   Preview da mensagem:\n${message.substring(0, 100)}...`);
+
+      console.log(`\n📤 Enviando mensagem para WAHA...`);
+      const sendResult = await wahaClient.sendText(chatId, message);
+      console.log(`✅ Resposta do WAHA:`, JSON.stringify(sendResult, null, 2));
+      console.log(`✅ WhatsApp de confirmação enviado com sucesso para ${event.phone}`);
+      console.log(`========================================\n`);
+    } catch (error: any) {
+      console.error(`\n❌❌❌ ERRO AO ENVIAR WHATSAPP ❌❌❌`);
+      console.error(`   Mensagem: ${error.message || error}`);
+      console.error(`   Stack:`, error.stack);
+      if (error.response) {
+        console.error(`   HTTP Status: ${error.response.status}`);
+        console.error(`   Response Data:`, JSON.stringify(error.response.data, null, 2));
+        console.error(`   Response Headers:`, JSON.stringify(error.response.headers, null, 2));
+      }
+      if (error.config) {
+        console.error(`   Request URL: ${error.config.url}`);
+        console.error(`   Request Method: ${error.config.method}`);
+        console.error(`   Request Data:`, JSON.stringify(error.config.data, null, 2));
+      }
+      console.log(`========================================\n`);
     }
   }
 }
