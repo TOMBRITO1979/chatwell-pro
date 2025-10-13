@@ -171,10 +171,32 @@ export function CalendarView() {
     });
   };
 
+  const getNext7Days = () => {
+    const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      days.push(date);
+    }
+
+    return days;
+  };
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+
+  const formatWeekDay = (date: Date) => {
+    return date.toLocaleDateString('pt-BR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
     });
   };
 
@@ -240,6 +262,14 @@ export function CalendarView() {
                 Mês
               </Button>
               <Button
+                variant={viewMode === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('week')}
+                className={viewMode === 'week' ? 'chatwell-gradient text-white' : ''}
+              >
+                7 Dias
+              </Button>
+              <Button
                 variant={viewMode === 'list' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('list')}
@@ -284,11 +314,80 @@ export function CalendarView() {
         </CardContent>
       </Card>
 
-      {/* Calendar or List View */}
+      {/* Calendar, Week or List View */}
       {loading ? (
         <div className="text-center py-12">
           <p className="text-gray-600">Carregando eventos...</p>
         </div>
+      ) : viewMode === 'week' ? (
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              {getNext7Days().map((date, index) => {
+                const dayEvents = getEventsForDay(date);
+                const isToday = date.toDateString() === new Date().toDateString();
+
+                return (
+                  <div
+                    key={index}
+                    className={`border rounded-lg p-3 ${
+                      isToday ? 'ring-2 ring-chatwell-blue bg-blue-50' : 'bg-white'
+                    }`}
+                  >
+                    <div className={`text-center font-semibold mb-3 pb-2 border-b ${
+                      isToday ? 'text-chatwell-blue' : 'text-gray-700'
+                    }`}>
+                      {formatWeekDay(date)}
+                      {isToday && (
+                        <div className="text-xs text-chatwell-blue font-normal mt-1">Hoje</div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {dayEvents.length === 0 ? (
+                        <div className="text-xs text-gray-400 text-center py-4">
+                          Sem eventos
+                        </div>
+                      ) : (
+                        dayEvents.map(event => (
+                          <div
+                            key={event.id}
+                            className="text-xs p-2 rounded cursor-pointer hover:shadow-md transition-shadow"
+                            style={{ backgroundColor: event.color + '20', borderLeft: `3px solid ${event.color}` }}
+                            onClick={() => handleEdit(event)}
+                          >
+                            <div className="font-medium mb-1" style={{ color: event.color }}>
+                              {event.title}
+                            </div>
+                            {!event.is_all_day && (
+                              <div className="text-xs text-gray-600">
+                                🕐 {formatTime(event.start_time)}
+                              </div>
+                            )}
+                            {event.is_all_day && (
+                              <div className="text-xs text-gray-600">
+                                🕐 Dia inteiro
+                              </div>
+                            )}
+                            {event.location && (
+                              <div className="text-xs text-gray-600 mt-1 truncate">
+                                📍 {event.location}
+                              </div>
+                            )}
+                            {event.client_name && (
+                              <div className="text-xs text-gray-600 truncate">
+                                👤 {event.client_name}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       ) : viewMode === 'month' ? (
         <Card>
           <CardContent className="p-4">
