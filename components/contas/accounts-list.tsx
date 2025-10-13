@@ -189,7 +189,7 @@ export function AccountsList() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
             <Wallet className="w-8 h-8 text-chatwell-blue" />
-            Contas a Pagar/Receber
+            Fluxo de Caixa
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gerencie suas contas a pagar e a receber

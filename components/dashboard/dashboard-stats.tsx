@@ -374,7 +374,7 @@ export function DashboardStats() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <AlertCircle className="w-6 h-6 text-red-600" />
-            Vencimentos (Contas a Pagar/Receber)
+            Vencimentos (Fluxo de Caixa)
           </h2>
           <Link href="/contas" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
             Ver tudo

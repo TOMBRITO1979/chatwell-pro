@@ -45,7 +45,7 @@ const navigationItems = [
     color: 'text-chatwell-purple'
   },
   {
-    title: 'Contas a Pagar',
+    title: 'Fluxo de Caixa',
     href: '/contas',
     icon: CreditCard,
     color: 'text-chatwell-red'
