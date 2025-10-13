@@ -57,6 +57,23 @@ export async function sendEventConfirmation(
         DEFAULT_WAHA_CONFIG.apiKey
       );
 
+      // Verifica status da sessão antes de enviar
+      let sessionStatus;
+      try {
+        sessionStatus = await wahaClient.getSessionStatus();
+        console.log(`📱 Status da sessão WAHA: ${sessionStatus.status}`);
+
+        if (sessionStatus.status !== 'WORKING') {
+          console.error(`❌ Sessão WAHA não está ativa: ${sessionStatus.status}`);
+          console.error('💡 Acesse /configuracoes para reconectar o WhatsApp');
+          return;
+        }
+      } catch (statusError: any) {
+        console.error('❌ Erro ao verificar status da sessão WAHA:', statusError.message);
+        console.error('💡 Verifique se o serviço WAHA está rodando e acessível');
+        return;
+      }
+
       const message = `✅ *Agendamento Confirmado*\n\n` +
         `📋 *Título:* ${event.title}\n` +
         `📅 *Início:* ${startTime}\n` +
@@ -66,8 +83,12 @@ export async function sendEventConfirmation(
 
       await wahaClient.sendText(event.phone, message);
       console.log(`✅ WhatsApp de confirmação enviado para ${event.phone}`);
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp de confirmação:', error);
+    } catch (error: any) {
+      console.error('❌ Erro ao enviar WhatsApp de confirmação:', error.message || error);
+      if (error.response) {
+        console.error('📋 Detalhes da resposta:', error.response.data);
+        console.error('🔢 Status code:', error.response.status);
+      }
     }
   }
 }

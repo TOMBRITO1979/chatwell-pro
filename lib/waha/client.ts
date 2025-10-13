@@ -45,7 +45,7 @@ export class WAHAClient {
     this.client = axios.create({
       baseURL: config.apiUrl,
       headers,
-      timeout: 30000,
+      timeout: 10000, // Reduzido de 30s para 10s
     });
   }
 
