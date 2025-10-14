@@ -21,16 +21,18 @@ export interface SMTPSettings {
 
 /**
  * Configurações SMTP padrão do sistema (variáveis de ambiente)
+ * Suporta tanto DEFAULT_SMTP_* quanto EMAIL_* (backward compatibility)
  */
 export function getDefaultSMTPSettings(): SMTPSettings | null {
-  const host = process.env.DEFAULT_SMTP_HOST;
-  const port = process.env.DEFAULT_SMTP_PORT;
-  const user = process.env.DEFAULT_SMTP_USER;
-  const pass = process.env.DEFAULT_SMTP_PASS;
-  const fromEmail = process.env.DEFAULT_FROM_EMAIL;
+  const host = process.env.DEFAULT_SMTP_HOST || process.env.EMAIL_HOST;
+  const port = process.env.DEFAULT_SMTP_PORT || process.env.EMAIL_PORT;
+  const user = process.env.DEFAULT_SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.DEFAULT_SMTP_PASS || process.env.EMAIL_PASS;
+  const fromEmail = process.env.DEFAULT_FROM_EMAIL || process.env.EMAIL_USER;
 
   if (!host || !port || !user || !pass || !fromEmail) {
     console.warn('⚠️  Configurações SMTP padrão não encontradas nas variáveis de ambiente');
+    console.warn('Configure DEFAULT_SMTP_* ou EMAIL_* no arquivo .env');
     return null;
   }
 
