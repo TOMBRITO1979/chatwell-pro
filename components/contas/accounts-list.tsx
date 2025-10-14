@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, Plus, Search, Edit, Trash2, Calendar, DollarSign, Filter } from 'lucide-react';
+import { Wallet, Plus, Search, Edit, Trash2, Calendar, DollarSign, Filter, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +44,8 @@ export function AccountsList() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [filterType, setFilterType] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingCSV, setExportingCSV] = useState(false);
   const [stats, setStats] = useState<Stats>({
     total_payable: 0,
     total_receivable: 0,
@@ -182,6 +184,82 @@ export function AccountsList() {
     return type === 'payable' ? 'text-red-600' : 'text-green-600';
   };
 
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    try {
+      const token = localStorage.getItem('token');
+
+      // Get current month range
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const url = `/api/accounts/export-pdf?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.focus();
+        }
+      } else {
+        alert('Erro ao gerar PDF');
+      }
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      alert('Erro ao exportar PDF');
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    setExportingCSV(true);
+    try {
+      const token = localStorage.getItem('token');
+
+      // Get current month range
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const url = `/api/accounts/export-csv?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `extrato_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } else {
+        alert('Erro ao gerar CSV');
+      }
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      alert('Erro ao exportar CSV');
+    } finally {
+      setExportingCSV(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 xl:p-8">
       {/* Header */}
@@ -195,13 +273,45 @@ export function AccountsList() {
             Gerencie suas contas a pagar e a receber
           </p>
         </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          className="chatwell-gradient text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExportPDF}
+            disabled={exportingPDF || accounts.length === 0}
+            variant="outline"
+            className="text-red-600 hover:text-red-700"
+          >
+            {exportingPDF ? (
+              <>Gerando...</>
+            ) : (
+              <>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleExportCSV}
+            disabled={exportingCSV || accounts.length === 0}
+            variant="outline"
+            className="text-green-600 hover:text-green-700"
+          >
+            {exportingCSV ? (
+              <>Gerando...</>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setShowForm(true)}
+            className="chatwell-gradient text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

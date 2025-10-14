@@ -312,7 +312,11 @@ export function ServicesList() {
 
       {/* Em Andamento Section */}
       <div className="mt-8">
-        <ContractsInProgress title="Contratações Em Andamento" />
+        <ContractsInProgress
+          title="Contratações Em Andamento"
+          showOnlyInProgress={false}
+          showExportButtons={true}
+        />
       </div>
 
       {/* Form Modal */}

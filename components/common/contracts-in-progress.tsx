@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Briefcase, User, Calendar, Edit } from 'lucide-react';
+import { Briefcase, User, Calendar, Edit, FileText, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServiceContractForm } from '@/components/clientes/service-contract-form';
 
@@ -22,16 +23,20 @@ interface ServiceContract {
 interface ContractsInProgressProps {
   title?: string;
   showOnlyInProgress?: boolean;
+  showExportButtons?: boolean;
 }
 
 export function ContractsInProgress({
   title = 'Em Andamento',
-  showOnlyInProgress = true
+  showOnlyInProgress = true,
+  showExportButtons = false
 }: ContractsInProgressProps) {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingContract, setEditingContract] = useState<ServiceContract | null>(null);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingCSV, setExportingCSV] = useState(false);
 
   useEffect(() => {
     loadContracts();
@@ -96,14 +101,136 @@ export function ContractsInProgress({
     );
   };
 
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    try {
+      const token = localStorage.getItem('token');
+
+      // Get current month range
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      let url = `/api/service-contracts/export-pdf?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
+      if (showOnlyInProgress) {
+        url += '&status=in_progress';
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.focus();
+        }
+      } else {
+        alert('Erro ao gerar PDF');
+      }
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      alert('Erro ao exportar PDF');
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    setExportingCSV(true);
+    try {
+      const token = localStorage.getItem('token');
+
+      // Get current month range
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      let url = `/api/service-contracts/export-csv?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
+      if (showOnlyInProgress) {
+        url += '&status=in_progress';
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `servicos_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } else {
+        alert('Erro ao gerar CSV');
+      }
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      alert('Erro ao exportar CSV');
+    } finally {
+      setExportingCSV(false);
+    }
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-chatwell-blue" />
-            {title}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-chatwell-blue" />
+              {title}
+            </CardTitle>
+            {showExportButtons && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleExportPDF}
+                  disabled={exportingPDF || contracts.length === 0}
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {exportingPDF ? (
+                    <>Gerando...</>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-1" />
+                      PDF
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleExportCSV}
+                  disabled={exportingCSV || contracts.length === 0}
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 hover:text-green-700"
+                >
+                  {exportingCSV ? (
+                    <>Gerando...</>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-1" />
+                      CSV
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
