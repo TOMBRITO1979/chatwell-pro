@@ -20,6 +20,7 @@ interface Event {
   reminder_minutes: number;
   phone: string | null;
   email: string | null;
+  meeting_url: string | null;
   client_name: string | null;
   project_name: string | null;
   client_id: string | null;
@@ -581,6 +582,23 @@ export function CalendarView() {
                           <div>📊 {event.project_name}</div>
                         )}
                       </div>
+
+                      {/* Online Meeting Link */}
+                      {event.meeting_url && event.event_type === 'online' && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <a
+                            href={event.meeting_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-all font-medium"
+                          >
+                            🎥 Entrar na Reunião Online (Jitsi Meet)
+                          </a>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Link: <span className="font-mono text-gray-600">{event.meeting_url}</span>
+                          </p>
+                        </div>
+                      )}
 
                       {/* Contact Information */}
                       {(event.phone || event.email) && (

@@ -159,6 +159,7 @@ export function EventForm({ event, onClose }: EventFormProps) {
 
   const eventTypeOptions = [
     { value: 'meeting', label: 'Reunião' },
+    { value: 'online', label: '🎥 Online (Jitsi Meet)' },
     { value: 'call', label: 'Ligação' },
     { value: 'task', label: 'Tarefa' },
     { value: 'event', label: 'Evento' },
