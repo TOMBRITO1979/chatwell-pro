@@ -178,6 +178,11 @@ export function AccountForm({ account, onClose }: AccountFormProps) {
     'Boleto',
     'Transferência Bancária',
     'Cheque',
+    'Zelle',
+    'Venmo',
+    'PayPal',
+    'Cash App',
+    'Apple Pay',
     'Outro'
   ];
 

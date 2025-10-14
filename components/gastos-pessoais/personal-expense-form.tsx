@@ -104,7 +104,12 @@ export function PersonalExpenseForm({ expense, onClose }: PersonalExpenseFormPro
     { value: 'transferencia', label: '🏦 Transferência' },
     { value: 'pix', label: '📱 PIX' },
     { value: 'boleto', label: '📄 Boleto' },
-    { value: 'cheque', label: '📝 Cheque' }
+    { value: 'cheque', label: '📝 Cheque' },
+    { value: 'zelle', label: '💸 Zelle' },
+    { value: 'venmo', label: '💸 Venmo' },
+    { value: 'paypal', label: '💸 PayPal' },
+    { value: 'cash_app', label: '💸 Cash App' },
+    { value: 'apple_pay', label: '🍎 Apple Pay' }
   ];
 
   return (
