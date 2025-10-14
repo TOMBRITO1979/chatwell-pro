@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Filter, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Filter, Search, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ export function CalendarView() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -120,6 +121,52 @@ export function CalendarView() {
     setShowEventForm(false);
     setEditingEvent(null);
     loadEvents();
+  };
+
+  const handleGeneratePDF = async () => {
+    try {
+      setGeneratingPDF(true);
+      const token = localStorage.getItem('token');
+
+      // Calculate date range based on current view
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      const url = `/api/events/export-pdf?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao gerar PDF');
+      }
+
+      // Obter HTML
+      const html = await response.text();
+
+      // Abrir em nova janela para impressão/salvar como PDF
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+
+        // Aguardar carregar antes de imprimir
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 250);
+        };
+      }
+
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF da agenda');
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   const previousMonth = () => {
@@ -227,13 +274,33 @@ export function CalendarView() {
             Gerencie seus compromissos e eventos
           </p>
         </div>
-        <Button
-          onClick={() => setShowEventForm(true)}
-          className="chatwell-gradient text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Evento
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleGeneratePDF}
+            disabled={generatingPDF || events.length === 0}
+            variant="outline"
+            className="border-red-600 text-red-600 hover:bg-red-50"
+          >
+            {generatingPDF ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <FileText className="w-4 h-4 mr-2" />
+                Gerar PDF
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setShowEventForm(true)}
+            className="chatwell-gradient text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Evento
+          </Button>
+        </div>
       </div>
 
       {/* Controls */}

@@ -166,6 +166,152 @@ export async function sendEventConfirmation(
 }
 
 /**
+ * Envia follow-up de confirmação para agendamentos do dia seguinte
+ * Deve ser executado todos os dias às 8h
+ * Intervalo de 50 segundos entre cada mensagem
+ */
+export async function sendDailyEventFollowUp() {
+  try {
+    const { db } = await import('./db');
+
+    console.log('\n========================================');
+    console.log('📅 INICIANDO FOLLOW-UP DIÁRIO DE AGENDAMENTOS');
+    console.log('========================================');
+    console.log(`⏰ Horário: ${new Date().toLocaleString('pt-BR')}`);
+
+    // Buscar todos os usuários
+    const usersResult = await db.query('SELECT id, name FROM users');
+
+    for (const user of usersResult.rows) {
+      console.log(`\n👤 Processando usuário: ${user.name} (ID: ${user.id})`);
+
+      // Buscar eventos do dia seguinte
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const dayAfterTomorrow = new Date(tomorrow);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+      // Buscar configurações WAHA do usuário
+      const wahaConfigResult = await db.query(
+        'SELECT api_url, api_key, session_name, is_active FROM waha_settings WHERE user_id = $1',
+        [user.id]
+      );
+
+      const hasWaha = wahaConfigResult.rows.length > 0 && wahaConfigResult.rows[0].is_active;
+
+      if (!hasWaha) {
+        console.log(`  ⚠️  WAHA não configurado ou inativo - pulando envio de WhatsApp`);
+      }
+
+      // Buscar eventos do dia seguinte com telefone ou email
+      const eventsResult = await db.query(
+        `SELECT id, title, start_time, end_time, location, phone, email
+         FROM events
+         WHERE user_id = $1
+         AND start_time >= $2
+         AND start_time < $3
+         AND (phone IS NOT NULL OR email IS NOT NULL)
+         ORDER BY start_time ASC`,
+        [user.id, tomorrow.toISOString(), dayAfterTomorrow.toISOString()]
+      );
+
+      if (eventsResult.rows.length === 0) {
+        console.log(`  ℹ️  Nenhum evento com contato para amanhã`);
+        continue;
+      }
+
+      console.log(`  📋 Encontrados ${eventsResult.rows.length} evento(s) para follow-up`);
+
+      // Processar cada evento com intervalo de 50 segundos
+      for (let i = 0; i < eventsResult.rows.length; i++) {
+        const event = eventsResult.rows[i];
+        const eventTime = new Date(event.start_time).toLocaleString('pt-BR');
+
+        console.log(`\n  📌 Evento ${i + 1}/${eventsResult.rows.length}: "${event.title}"`);
+        console.log(`     Horário: ${eventTime}`);
+        console.log(`     Contatos: ${event.phone ? '📱 WhatsApp' : ''} ${event.email ? '📧 Email' : ''}`);
+
+        const message = `🔔 *Confirmação de Agendamento*\n\n` +
+          `Olá! Este é um lembrete para confirmar seu agendamento de *amanhã*:\n\n` +
+          `📋 *${event.title}*\n` +
+          `📅 *Data/Hora:* ${eventTime}\n` +
+          `${event.location ? `📍 *Local:* ${event.location}\n` : ''}` +
+          `\nPor favor, confirme sua presença respondendo esta mensagem.\n\n` +
+          `Aguardamos você! 🤝`;
+
+        // Enviar WhatsApp se tiver telefone e WAHA configurado
+        if (event.phone && hasWaha) {
+          try {
+            const wahaConfig = wahaConfigResult.rows[0];
+            const wahaClient = createWAHAClient(
+              wahaConfig.api_url,
+              wahaConfig.session_name,
+              wahaConfig.api_key
+            );
+
+            // Verificar status da sessão
+            const sessionStatus = await wahaClient.getSessionStatus();
+
+            if (sessionStatus.status === 'WORKING') {
+              let chatId = event.phone.trim();
+              if (!chatId.includes('@')) {
+                chatId = chatId.replace(/\D/g, '');
+                chatId = `${chatId}@c.us`;
+              }
+
+              await wahaClient.sendText(chatId, message);
+              console.log(`     ✅ WhatsApp enviado para ${event.phone}`);
+            } else {
+              console.log(`     ⚠️  Sessão WAHA não está ativa: ${sessionStatus.status}`);
+            }
+          } catch (error: any) {
+            console.error(`     ❌ Erro ao enviar WhatsApp: ${error.message}`);
+          }
+        }
+
+        // Enviar Email se tiver
+        if (event.email) {
+          try {
+            const template = emailTemplates.eventConfirmation(
+              event.title,
+              eventTime,
+              eventTime,
+              event.location
+            );
+
+            await sendEmail(null, {
+              to: event.email,
+              subject: '🔔 Confirmação de Agendamento para Amanhã',
+              html: template.html
+            });
+
+            console.log(`     ✅ Email enviado para ${event.email}`);
+          } catch (error: any) {
+            console.error(`     ❌ Erro ao enviar email: ${error.message}`);
+          }
+        }
+
+        // Aguardar 50 segundos antes do próximo (exceto no último)
+        if (i < eventsResult.rows.length - 1) {
+          console.log(`     ⏳ Aguardando 50 segundos antes do próximo...`);
+          await new Promise(resolve => setTimeout(resolve, 50000));
+        }
+      }
+    }
+
+    console.log('\n========================================');
+    console.log('✅ FOLLOW-UP DIÁRIO CONCLUÍDO');
+    console.log('========================================\n');
+
+  } catch (error) {
+    console.error('❌ Erro ao enviar follow-up diário:', error);
+    throw error;
+  }
+}
+
+/**
  * Envia lembretes diários de agendamentos (Tarefa 4.2)
  * Deve ser executado todos os dias às 18h
  */
