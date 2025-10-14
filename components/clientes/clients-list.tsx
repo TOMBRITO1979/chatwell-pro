@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Users, Plus, Search, Edit, Trash2, Mail, Phone, MapPin } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Users, Plus, Search, Edit, Trash2, Mail, Phone, MapPin, Download, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,9 @@ export function ClientesList() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadClients();
@@ -138,6 +141,89 @@ export function ClientesList() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch('/api/clients/export', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.message || 'Erro ao exportar clientes');
+        return;
+      }
+
+      // Criar blob e fazer download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clientes_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('Clientes exportados com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      alert('Erro ao exportar clientes');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImporting(true);
+      const token = localStorage.getItem('token');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/clients/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message);
+        if (data.errors && data.errors.length > 0) {
+          console.warn('Erros na importação:', data.errors);
+        }
+        loadClients();
+      } else {
+        alert(data.message || 'Erro ao importar clientes');
+      }
+    } catch (error) {
+      console.error('Erro ao importar:', error);
+      alert('Erro ao importar clientes');
+    } finally {
+      setImporting(false);
+      // Limpar input para permitir re-upload do mesmo arquivo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 xl:p-8">
       {/* Header */}
@@ -151,13 +237,58 @@ export function ClientesList() {
             Gerencie seus clientes e informações de contato
           </p>
         </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          className="chatwell-gradient text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExport}
+            disabled={exporting || clients.length === 0}
+            variant="outline"
+            className="border-green-600 text-green-600 hover:bg-green-50"
+          >
+            {exporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exportando...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleImportClick}
+            disabled={importing}
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            {importing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar CSV
+              </>
+            )}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+          <Button
+            onClick={() => setShowForm(true)}
+            className="chatwell-gradient text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

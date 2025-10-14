@@ -1,0 +1,5 @@
+Nome,Email,Telefone,WhatsApp,CPF/CNPJ,Endereço,Cidade,Estado,CEP,Observações,Status
+João Silva,joao@example.com,11987654321,11987654321,123.456.789-00,Rua das Flores 123,São Paulo,SP,01234-567,Cliente VIP,active
+Maria Santos,maria@example.com,11976543210,11976543210,987.654.321-00,Av. Paulista 1000,São Paulo,SP,01310-100,Preferencial,active
+Empresa ABC Ltda,contato@abcltda.com,1133334444,11988887777,12.345.678/0001-90,Rua Comercial 500,São Paulo,SP,04567-890,Cliente corporativo,active
+Pedro Oliveira,pedro@example.com,11965432109,,456.789.123-00,Rua das Palmeiras 789,Campinas,SP,13000-000,,inactive
