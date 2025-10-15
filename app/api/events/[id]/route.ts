@@ -166,8 +166,8 @@ export async function PUT(
       eventTitle: title,
       eventStartTime: start_time,
       eventEndTime: end_time,
-      eventLocation: location,
-      meetingUrl: meeting_url,
+      eventLocation: location || undefined,
+      meetingUrl: meeting_url || undefined,
       phone: phone || undefined,
       email: email || undefined
     };
