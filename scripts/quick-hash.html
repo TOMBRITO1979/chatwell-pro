@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Super Admin Hash</title>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+</head>
+<body>
+  <h1>Generate Super Admin Password Hash</h1>
+  <input type="text" id="password" placeholder="Digite a senha" value="Admin@2025">
+  <button onclick="generateHash()">Gerar Hash</button>
+  <pre id="result"></pre>
+
+  <script>
+    function generateHash() {
+      const password = document.getElementById('password').value;
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync(password, salt);
+
+      const sql = `
+-- Inserir super admin
+INSERT INTO super_admins (username, password_hash, name, email)
+VALUES (
+  'admin',
+  '${hash}',
+  'Super Administrador',
+  'admin@chatwell.com'
+)
+ON CONFLICT (username) DO NOTHING;
+      `;
+
+      document.getElementById('result').textContent =
+        'Senha: ' + password + '\n' +
+        'Hash: ' + hash + '\n\n' +
+        'SQL para executar:\n' + sql;
+    }
+
+    // Gerar automaticamente ao carregar
+    window.onload = function() {
+      generateHash();
+    };
+  </script>
+</body>
+</html>
