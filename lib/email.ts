@@ -232,7 +232,7 @@ export const emailTemplates = {
     `
   }),
 
-  eventConfirmation: (eventTitle: string, startTime: string, endTime: string, location?: string) => ({
+  eventConfirmation: (eventTitle: string, startTime: string, endTime: string, location?: string, meetingUrl?: string) => ({
     subject: `Confirmação de Agendamento: ${eventTitle}`,
     html: `
       <h2>✅ Agendamento Confirmado</h2>
@@ -242,6 +242,18 @@ export const emailTemplates = {
       <p><strong>Data/Hora Início:</strong> ${startTime}</p>
       <p><strong>Data/Hora Fim:</strong> ${endTime}</p>
       ${location ? `<p><strong>Local:</strong> ${location}</p>` : ''}
+      ${meetingUrl ? `
+        <br>
+        <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0;"><strong>🎥 Reunião Online:</strong></p>
+          <a href="${meetingUrl}"
+             style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold;"
+             target="_blank">
+            Entrar na Reunião Online (Jitsi Meet)
+          </a>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Link: ${meetingUrl}</p>
+        </div>
+      ` : ''}
       <br>
       <p>Aguardamos você!</p>
       <p>Atenciosamente,<br>Chatwell Pro</p>

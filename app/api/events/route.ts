@@ -196,7 +196,8 @@ export async function POST(request: NextRequest) {
         end_time,
         location,
         phone: phone || undefined,
-        email: email || undefined
+        email: email || undefined,
+        meeting_url: meeting_url || undefined
       }).catch(error => {
         console.error('Erro ao enviar notificação de confirmação:', error);
       });

@@ -84,7 +84,7 @@ export async function PUT(
     }
 
     const checkResult = await db.query(
-      'SELECT id FROM events WHERE id = $1 AND user_id = $2',
+      'SELECT id, meeting_url FROM events WHERE id = $1 AND user_id = $2',
       [params.id, payload.userId]
     );
 
@@ -92,7 +92,17 @@ export async function PUT(
       return NextResponse.json({ message: 'Evento não encontrado' }, { status: 404 });
     }
 
-    // Try to update with phone/email, fallback to without if columns don't exist
+    // Gerar link do Jitsi Meet se tipo for "online" e ainda não tiver link
+    let meeting_url = checkResult.rows[0].meeting_url;
+    if (event_type === 'online' && !meeting_url) {
+      const roomId = `chatwell-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      meeting_url = `https://meet.jit.si/${roomId}`;
+    } else if (event_type !== 'online') {
+      // Se mudou de online para outro tipo, remove o link
+      meeting_url = null;
+    }
+
+    // Try to update with phone/email/meeting_url, fallback to without if columns don't exist
     let result;
     try {
       result = await db.query(
@@ -100,18 +110,18 @@ export async function PUT(
          SET title = $1, description = $2, start_time = $3, end_time = $4,
              location = $5, event_type = $6, color = $7, is_all_day = $8,
              reminder_minutes = $9, client_id = $10, project_id = $11, phone = $12, email = $13,
-             updated_at = NOW()
-         WHERE id = $14 AND user_id = $15
+             meeting_url = $14, updated_at = NOW()
+         WHERE id = $15 AND user_id = $16
          RETURNING *`,
         [
           title, description, start_time, end_time, location,
           event_type, color, is_all_day, reminder_minutes,
-          client_id || null, project_id || null, phone || null, email || null,
+          client_id || null, project_id || null, phone || null, email || null, meeting_url,
           params.id, payload.userId
         ]
       );
     } catch (dbError: any) {
-      // If phone/email columns don't exist, update without them
+      // If phone/email/meeting_url columns don't exist, update without them
       if (dbError.message && dbError.message.includes('column')) {
         result = await db.query(
           `UPDATE events

@@ -21,6 +21,7 @@ export async function sendEventConfirmation(
     location?: string;
     phone?: string;
     email?: string;
+    meeting_url?: string;
   }
 ) {
   const startTime = new Date(event.start_time).toLocaleString('pt-BR');
@@ -33,7 +34,8 @@ export async function sendEventConfirmation(
         event.title,
         startTime,
         endTime,
-        event.location
+        event.location,
+        event.meeting_url
       );
 
       await sendEmail(null, {
@@ -124,6 +126,7 @@ export async function sendEventConfirmation(
         `📅 *Início:* ${startTime}\n` +
         `⏰ *Fim:* ${endTime}\n` +
         (event.location ? `📍 *Local:* ${event.location}\n` : '') +
+        (event.meeting_url ? `\n🎥 *Link da Reunião Online:*\n${event.meeting_url}\n` : '') +
         `\nAguardamos você! 🤝`;
 
       // Formatar número no formato WhatsApp (adicionar @c.us se não tiver)
