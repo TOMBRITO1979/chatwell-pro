@@ -26,12 +26,28 @@ export async function GET(
       hasContactFields = false;
     }
 
-    const selectFields = hasContactFields
-      ? `e.*, c.name as client_name, p.name as project_name`
-      : `e.id, e.user_id, e.client_id, e.project_id, e.title, e.description,
-         e.start_time, e.end_time, e.location, e.event_type, e.color,
-         e.is_all_day, e.reminder_minutes, e.created_at, e.updated_at,
-         c.name as client_name, p.name as project_name`;
+    // Check if meeting_url column exists
+    let hasMeetingUrl = true;
+    try {
+      await db.query(`SELECT meeting_url FROM events LIMIT 0`);
+    } catch {
+      hasMeetingUrl = false;
+    }
+
+    // Build SELECT fields based on available columns
+    let selectFields = `e.id, e.user_id, e.client_id, e.project_id, e.title, e.description,
+                        e.start_time, e.end_time, e.location, e.event_type, e.color,
+                        e.is_all_day, e.reminder_minutes, e.created_at, e.updated_at`;
+
+    if (hasContactFields) {
+      selectFields += `, e.phone, e.email`;
+    }
+
+    if (hasMeetingUrl) {
+      selectFields += `, e.meeting_url`;
+    }
+
+    selectFields += `, c.name as client_name, p.name as project_name`;
 
     const result = await db.query(
       `SELECT ${selectFields}
