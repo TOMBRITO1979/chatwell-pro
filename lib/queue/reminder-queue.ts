@@ -2,9 +2,9 @@ import { Queue } from 'bullmq';
 import { redisConnection, QueueNames, defaultJobOptions, ReminderJobTypes } from './config';
 
 /**
- * Interface para dados do job de lembrete
+ * Interface para dados do evento (input)
  */
-export interface ReminderJobData {
+export interface EventReminderData {
   eventId: string;
   userId: string;
   eventTitle: string;
@@ -14,6 +14,12 @@ export interface ReminderJobData {
   meetingUrl?: string;
   phone?: string;
   email?: string;
+}
+
+/**
+ * Interface para dados do job de lembrete (incluindo tipo)
+ */
+export interface ReminderJobData extends EventReminderData {
   reminderType: typeof ReminderJobTypes[keyof typeof ReminderJobTypes];
 }
 
@@ -41,7 +47,7 @@ class ReminderQueue {
   /**
    * Agenda lembrete diário (24h antes do evento)
    */
-  async scheduleDailyReminder(data: ReminderJobData, eventStartTime: Date): Promise<void> {
+  async scheduleDailyReminder(data: EventReminderData, eventStartTime: Date): Promise<void> {
     const queue = this.getQueue();
 
     // Calcula 24h antes do evento
@@ -73,7 +79,7 @@ class ReminderQueue {
    * Agenda lembrete customizado (baseado em reminder_minutes)
    */
   async scheduleCustomReminder(
-    data: ReminderJobData,
+    data: EventReminderData,
     eventStartTime: Date,
     reminderMinutes: number
   ): Promise<void> {
