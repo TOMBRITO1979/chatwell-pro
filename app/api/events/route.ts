@@ -203,6 +203,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Agendar lembretes de forma ASSÍNCRONA (não bloqueia resposta)
+    const eventData = {
+      eventId: result.rows[0].id,
+      userId: payload.userId,
+      eventTitle: title,
+      eventStartTime: start_time,
+      eventEndTime: end_time,
+      eventLocation: location,
+      meetingUrl: meeting_url,
+      phone: phone || undefined,
+      email: email || undefined
+    };
+
+    // Importa e agenda lembretes
+    import('@/lib/queue/reminder-queue').then(({ reminderQueue }) => {
+      const eventStartTime = new Date(start_time);
+
+      // Agenda lembrete diário (24h antes)
+      reminderQueue.scheduleDailyReminder(eventData, eventStartTime)
+        .catch(error => {
+          console.error('Erro ao agendar lembrete diário:', error);
+        });
+
+      // Agenda lembrete customizado (baseado em reminder_minutes)
+      if (reminder_minutes && reminder_minutes > 0) {
+        reminderQueue.scheduleCustomReminder(eventData, eventStartTime, reminder_minutes)
+          .catch(error => {
+            console.error('Erro ao agendar lembrete customizado:', error);
+          });
+      }
+    }).catch(error => {
+      console.error('Erro ao importar fila de lembretes:', error);
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Evento criado com sucesso!',

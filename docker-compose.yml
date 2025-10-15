@@ -57,8 +57,11 @@ services:
       # Database
       DATABASE_URL: postgresql://chatwell:${POSTGRES_PASSWORD}@postgres:5432/chatwell
 
-      # Redis (opcional, se você implementar cache)
+      # Redis (para cache e filas)
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
       # JWT
       JWT_SECRET: ${JWT_SECRET}

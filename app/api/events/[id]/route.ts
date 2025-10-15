@@ -159,6 +159,46 @@ export async function PUT(
       }
     }
 
+    // Reagendar lembretes de forma ASSÍNCRONA (não bloqueia resposta)
+    const eventData = {
+      eventId: params.id,
+      userId: payload.userId,
+      eventTitle: title,
+      eventStartTime: start_time,
+      eventEndTime: end_time,
+      eventLocation: location,
+      meetingUrl: meeting_url,
+      phone: phone || undefined,
+      email: email || undefined
+    };
+
+    // Importa e reagenda lembretes
+    import('@/lib/queue/reminder-queue').then(({ reminderQueue }) => {
+      const eventStartTime = new Date(start_time);
+
+      // Remove lembretes antigos
+      reminderQueue.removeEventReminders(params.id)
+        .then(() => {
+          // Agenda novos lembretes
+          reminderQueue.scheduleDailyReminder(eventData, eventStartTime)
+            .catch(error => {
+              console.error('Erro ao agendar lembrete diário:', error);
+            });
+
+          if (reminder_minutes && reminder_minutes > 0) {
+            reminderQueue.scheduleCustomReminder(eventData, eventStartTime, reminder_minutes)
+              .catch(error => {
+                console.error('Erro ao agendar lembrete customizado:', error);
+              });
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao remover lembretes antigos:', error);
+        });
+    }).catch(error => {
+      console.error('Erro ao importar fila de lembretes:', error);
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Evento atualizado com sucesso!',
@@ -200,6 +240,16 @@ export async function DELETE(
       'DELETE FROM events WHERE id = $1 AND user_id = $2',
       [params.id, payload.userId]
     );
+
+    // Remove lembretes agendados de forma ASSÍNCRONA (não bloqueia resposta)
+    import('@/lib/queue/reminder-queue').then(({ reminderQueue }) => {
+      reminderQueue.removeEventReminders(params.id)
+        .catch(error => {
+          console.error('Erro ao remover lembretes do evento deletado:', error);
+        });
+    }).catch(error => {
+      console.error('Erro ao importar fila de lembretes:', error);
+    });
 
     return NextResponse.json({
       success: true,
