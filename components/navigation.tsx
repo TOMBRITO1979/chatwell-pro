@@ -14,7 +14,6 @@ import {
   CreditCard,
   CheckSquare,
   Briefcase,
-  Kanban,
   ShoppingCart,
   TrendingUp,
   TrendingDown,
@@ -61,12 +60,6 @@ const navigationItems = [
     href: '/servicos',
     icon: Briefcase,
     color: 'text-chatwell-blue'
-  },
-  {
-    title: 'Kanban',
-    href: '/kanban',
-    icon: Kanban,
-    color: 'text-chatwell-purple'
   },
   {
     title: 'Lista de Compras',
