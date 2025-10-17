@@ -234,8 +234,6 @@ export function KanbanBoard() {
               <div
                 key={column.id}
                 className="flex flex-col"
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(column.id)}
               >
                 {/* Column Header */}
                 <Card className={`mb-4 ${column.color} border-2`}>
@@ -249,8 +247,12 @@ export function KanbanBoard() {
                   </CardHeader>
                 </Card>
 
-                {/* Tasks */}
-                <div className="space-y-3 flex-1 min-h-[200px]">
+                {/* Tasks Drop Zone */}
+                <div
+                  className="space-y-3 flex-1 min-h-[200px]"
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(column.id)}
+                >
                   {columnTasks.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm py-8">
                       Nenhuma tarefa
@@ -264,6 +266,7 @@ export function KanbanBoard() {
                         }`}
                         draggable
                         onDragStart={() => handleDragStart(task)}
+                        onDragEnd={() => setDraggedTask(null)}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-2 mb-2">
