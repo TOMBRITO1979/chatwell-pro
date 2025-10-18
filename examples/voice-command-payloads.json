@@ -1,0 +1,302 @@
+{
+  "description": "Exemplos de payloads para testar a API de comandos de voz",
+  "base_url": "https://app.chatwell.pro",
+  "authentication": {
+    "header": "X-API-Key",
+    "value": "SUBSTITUA_COM_SUA_API_KEY"
+  },
+  "examples": {
+    "eventos": [
+      {
+        "name": "Reunião básica",
+        "payload": {
+          "transcription": "Agendar reunião com cliente amanhã às 15 horas",
+          "type": "auto",
+          "source": "telegram",
+          "metadata": {
+            "chat_id": "123456789",
+            "message_id": "999"
+          }
+        },
+        "expected_result": "Evento criado para amanhã às 15h"
+      },
+      {
+        "name": "Consulta com hora específica",
+        "payload": {
+          "transcription": "Marcar consulta dia 25 às 10h30",
+          "type": "event",
+          "source": "whatsapp"
+        },
+        "expected_result": "Evento dia 25 às 10h30"
+      },
+      {
+        "name": "Evento hoje",
+        "payload": {
+          "transcription": "Compromisso hoje às 14h no escritório",
+          "type": "auto",
+          "source": "telegram"
+        },
+        "expected_result": "Evento hoje às 14h com localização 'escritório'"
+      },
+      {
+        "name": "Reunião online",
+        "payload": {
+          "transcription": "Reunião online na próxima segunda às 9h",
+          "type": "event",
+          "source": "telegram"
+        },
+        "expected_result": "Evento online com link Jitsi gerado automaticamente"
+      },
+      {
+        "name": "Call específico",
+        "payload": {
+          "transcription": "Call com fornecedor dia 20 de novembro às 16h",
+          "type": "auto",
+          "source": "whatsapp"
+        },
+        "expected_result": "Evento tipo 'call' dia 20/11 às 16h"
+      },
+      {
+        "name": "Evento com duração",
+        "payload": {
+          "transcription": "Reunião amanhã às 9h por 2 horas",
+          "type": "event",
+          "source": "telegram"
+        },
+        "expected_result": "Evento de 9h às 11h"
+      }
+    ],
+    "contas": [
+      {
+        "name": "Conta de energia",
+        "payload": {
+          "transcription": "Conta de energia vence dia 25 no valor de 350 reais",
+          "type": "auto",
+          "source": "telegram"
+        },
+        "expected_result": "Conta a pagar R$ 350,00 categoria 'Energia'"
+      },
+      {
+        "name": "Boleto internet",
+        "payload": {
+          "transcription": "Pagar boleto de internet dia 15 de 120 reais",
+          "type": "account",
+          "source": "whatsapp"
+        },
+        "expected_result": "Conta a pagar R$ 120,00 categoria 'Internet'"
+      },
+      {
+        "name": "Conta a receber",
+        "payload": {
+          "transcription": "Receber pagamento do cliente dia 30 de 5000 reais",
+          "type": "auto",
+          "source": "telegram"
+        },
+        "expected_result": "Conta a RECEBER R$ 5.000,00"
+      },
+      {
+        "name": "Fatura cartão",
+        "payload": {
+          "transcription": "Fatura do cartão vence dia 10 valor 2500",
+          "type": "account",
+          "source": "telegram"
+        },
+        "expected_result": "Conta a pagar R$ 2.500,00"
+      },
+      {
+        "name": "Conta com centavos",
+        "payload": {
+          "transcription": "Conta de água para o dia 5 no valor de 85 reais e 50 centavos",
+          "type": "auto",
+          "source": "whatsapp"
+        },
+        "expected_result": "Conta a pagar R$ 85,50 categoria 'Água'"
+      },
+      {
+        "name": "Aluguel",
+        "payload": {
+          "transcription": "Pagar aluguel dia 5 de R$ 1800",
+          "type": "account",
+          "source": "telegram"
+        },
+        "expected_result": "Conta a pagar R$ 1.800,00 categoria 'Aluguel'"
+      }
+    ],
+    "edge_cases": [
+      {
+        "name": "Sem data (deve falhar)",
+        "payload": {
+          "transcription": "Agendar reunião com cliente",
+          "type": "auto",
+          "source": "test"
+        },
+        "expected_result": "Erro: data/hora não identificada"
+      },
+      {
+        "name": "Sem valor (deve falhar)",
+        "payload": {
+          "transcription": "Conta de luz vence amanhã",
+          "type": "auto",
+          "source": "test"
+        },
+        "expected_result": "Erro: valor não identificado"
+      },
+      {
+        "name": "Comando ambíguo",
+        "payload": {
+          "transcription": "Lembrar de fazer algo importante",
+          "type": "auto",
+          "source": "test"
+        },
+        "expected_result": "Erro: não conseguiu identificar tipo"
+      },
+      {
+        "name": "Transcrição vazia",
+        "payload": {
+          "transcription": "",
+          "type": "auto",
+          "source": "test"
+        },
+        "expected_result": "Erro: transcrição obrigatória"
+      }
+    ],
+    "advanced": [
+      {
+        "name": "Evento com múltiplos detalhes",
+        "payload": {
+          "transcription": "Agendar reunião online com o cliente João da empresa XYZ para discutir o projeto amanhã às 15 horas",
+          "type": "event",
+          "source": "telegram",
+          "metadata": {
+            "audio_duration": 12,
+            "chat_id": "123456789"
+          }
+        },
+        "expected_result": "Evento online criado com título extraído"
+      },
+      {
+        "name": "Conta com descrição longa",
+        "payload": {
+          "transcription": "Preciso pagar a conta de internet da NET que vence no dia 15 do próximo mês no valor de 120 reais",
+          "type": "account",
+          "source": "whatsapp"
+        },
+        "expected_result": "Conta criada com título 'Conta de internet da NET'"
+      },
+      {
+        "name": "Data complexa",
+        "payload": {
+          "transcription": "Reunião dia 15 de dezembro às 9 da manhã",
+          "type": "event",
+          "source": "telegram"
+        },
+        "expected_result": "Evento dia 15/12 às 09h"
+      }
+    ]
+  },
+  "curl_examples": {
+    "criar_evento": {
+      "command": "curl -X POST https://app.chatwell.pro/api/webhooks/voice-commands -H \"Content-Type: application/json\" -H \"X-API-Key: SUA_API_KEY\" -d '{\"transcription\": \"Agendar reunião com cliente amanhã às 15 horas\", \"type\": \"auto\", \"source\": \"telegram\"}'",
+      "description": "Criar evento via comando de voz"
+    },
+    "criar_conta": {
+      "command": "curl -X POST https://app.chatwell.pro/api/webhooks/voice-commands -H \"Content-Type: application/json\" -H \"X-API-Key: SUA_API_KEY\" -d '{\"transcription\": \"Conta de energia vence dia 25 no valor de 350 reais\", \"type\": \"auto\", \"source\": \"telegram\"}'",
+      "description": "Criar conta via comando de voz"
+    },
+    "get_info": {
+      "command": "curl -X GET https://app.chatwell.pro/api/webhooks/voice-commands",
+      "description": "Obter informações sobre a API"
+    },
+    "obter_api_key": {
+      "command": "curl -X GET https://app.chatwell.pro/api/user/api-key -H \"Authorization: Bearer SEU_JWT_TOKEN\"",
+      "description": "Obter API Key do usuário logado"
+    },
+    "gerar_api_key": {
+      "command": "curl -X POST https://app.chatwell.pro/api/user/api-key -H \"Authorization: Bearer SEU_JWT_TOKEN\"",
+      "description": "Gerar nova API Key"
+    }
+  },
+  "n8n_workflow_example": {
+    "description": "Exemplo de configuração do body no node HTTP Request do n8n",
+    "body": {
+      "transcription": "={{ $json.text }}",
+      "type": "auto",
+      "source": "telegram",
+      "metadata": {
+        "chat_id": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "message_id": "={{ $('Telegram Trigger').item.json.message.message_id }}",
+        "timestamp": "={{ $('Telegram Trigger').item.json.message.date }}",
+        "audio_duration": "={{ $('Telegram Trigger').item.json.message.voice.duration }}",
+        "audio_url": "URL do áudio (opcional)"
+      }
+    }
+  },
+  "response_examples": {
+    "success_event": {
+      "success": true,
+      "type": "event",
+      "data": {
+        "id": "abc-123-def-456",
+        "title": "Reunião com cliente",
+        "start_time": "2025-10-19T15:00:00Z",
+        "end_time": "2025-10-19T16:00:00Z",
+        "location": null,
+        "event_type": "meeting",
+        "created_at": "2025-10-18T10:30:00Z"
+      },
+      "message": "✅ Evento agendado com sucesso!\n\n📅 Reunião com cliente\n🕒 sábado, 19 de outubro, 15:00\n\nID: abc-123-def-456",
+      "parsed_info": {
+        "title": "Reunião com cliente",
+        "date": "19/10/2025",
+        "time": "15:00",
+        "location": null,
+        "event_type": "meeting"
+      }
+    },
+    "success_account": {
+      "success": true,
+      "type": "account",
+      "data": {
+        "id": "xyz-789-uvw-012",
+        "title": "Conta de energia",
+        "amount": "350.00",
+        "due_date": "2025-10-25",
+        "type": "expense",
+        "status": "pending",
+        "category": "Energia",
+        "created_at": "2025-10-18T10:30:00Z"
+      },
+      "message": "✅ Conta a pagar cadastrada com sucesso!\n\n💸 Conta de energia\n💵 R$ 350.00\n📅 Vencimento: 25 de outubro de 2025\n🏷️ Categoria: Energia\n\nID: xyz-789-uvw-012",
+      "parsed_info": {
+        "title": "Conta de energia",
+        "amount": "R$ 350.00",
+        "due_date": "25/10/2025",
+        "type": "a pagar",
+        "category": "Energia"
+      }
+    },
+    "error_no_date": {
+      "success": false,
+      "message": "Não consegui identificar a data/hora. Tente falar algo como 'amanhã às 15 horas' ou 'dia 25 às 10h'.",
+      "transcription": "agendar reunião com cliente",
+      "suggestion": "Tente falar algo como: \"Agendar reunião com cliente amanhã às 15 horas\" ou \"Conta de energia vence dia 25 no valor de 350 reais\""
+    },
+    "error_invalid_api_key": {
+      "success": false,
+      "message": "API Key inválida ou usuário inativo."
+    }
+  },
+  "testing": {
+    "bash_script": "./test-voice-commands.sh",
+    "manual_test": {
+      "step_1": "export API_KEY='sua-api-key-aqui'",
+      "step_2": "curl -X POST https://app.chatwell.pro/api/webhooks/voice-commands -H \"Content-Type: application/json\" -H \"X-API-Key: $API_KEY\" -d '{\"transcription\": \"Agendar reunião com cliente amanhã às 15 horas\", \"type\": \"auto\", \"source\": \"test\"}'"
+    },
+    "sql_queries": {
+      "ver_logs": "SELECT * FROM voice_command_logs ORDER BY created_at DESC LIMIT 10;",
+      "ver_eventos_criados": "SELECT e.*, vcl.transcription FROM events e JOIN voice_command_logs vcl ON e.id::text = vcl.created_item_id::text WHERE vcl.created_at > NOW() - INTERVAL '1 day';",
+      "ver_contas_criadas": "SELECT a.*, vcl.transcription FROM accounts a JOIN voice_command_logs vcl ON a.id::text = vcl.created_item_id::text WHERE vcl.created_at > NOW() - INTERVAL '1 day';",
+      "taxa_sucesso": "SELECT COUNT(*) FILTER (WHERE created_item_id IS NOT NULL) * 100.0 / COUNT(*) as success_rate FROM voice_command_logs WHERE created_at > NOW() - INTERVAL '7 days';"
+    }
+  }
+}
