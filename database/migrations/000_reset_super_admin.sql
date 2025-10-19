@@ -27,6 +27,9 @@ DECLARE
   v_reset_expires TIMESTAMP;
   v_temp_password TEXT;
   v_password_hash TEXT;
+  v_username TEXT;
+  v_email TEXT;
+  v_name TEXT;
 BEGIN
   -- Gera token de reset
   v_reset_token := generate_random_token(64);
@@ -36,6 +39,11 @@ BEGIN
   -- Senha temporária aleatória (será resetada via link)
   v_temp_password := generate_random_token(40);
   v_password_hash := crypt(v_temp_password, gen_salt('bf', 10));
+
+  -- Credenciais configuradas (não expostas publicamente)
+  v_username := 'wasolutionscorp';
+  v_email := 'wasolutionscorp@gmail.com';
+  v_name := 'WA Solutions Corp';
 
   -- Insere ou atualiza super admin
   INSERT INTO super_admins (
@@ -49,9 +57,9 @@ BEGIN
     created_at,
     updated_at
   ) VALUES (
-    'wasolutionscorp',
-    'wasolutionscorp@gmail.com',
-    'WA Solutions Corp',
+    v_username,
+    v_email,
+    v_name,
     v_password_hash,
     v_reset_token_hash,
     v_reset_expires,
@@ -61,8 +69,8 @@ BEGIN
   )
   ON CONFLICT (email)
   DO UPDATE SET
-    username = 'wasolutionscorp',
-    name = 'WA Solutions Corp',
+    username = v_username,
+    name = v_name,
     password_hash = v_password_hash,
     password_reset_token = v_reset_token_hash,
     password_reset_expires = v_reset_expires,
@@ -75,8 +83,8 @@ BEGIN
   RAISE NOTICE '✅ SUPER ADMIN RESETADO COM SUCESSO!';
   RAISE NOTICE '═══════════════════════════════════════════════════════════';
   RAISE NOTICE '';
-  RAISE NOTICE '📧 Email: wasolutionscorp@gmail.com';
-  RAISE NOTICE '👤 Username: wasolutionscorp';
+  RAISE NOTICE '📧 Email: %', v_email;
+  RAISE NOTICE '👤 Username: %', v_username;
   RAISE NOTICE '';
   RAISE NOTICE '🔐 Link de redefinição de senha (válido por 24h):';
   RAISE NOTICE '';
