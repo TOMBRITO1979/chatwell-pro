@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chatwellpro
+      POSTGRES_USER: chatwell_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-RuGc2mfJ8oJW6giog3RiJCBd5qZmWp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=false"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwell_user -d chatwellpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Chatwell Application
+  chatwell:
+    image: tomautomations/chatwell-pro:20251019-040000
+    environment:
+      # Database
+      DATABASE_URL: "postgresql://chatwell_user:${POSTGRES_PASSWORD:-RuGc2mfJ8oJW6giog3RiJCBd5qZmWp}@postgres:5432/chatwellpro"
+
+      # Redis - USANDO O REDIS EXISTENTE
+      # Use o hostname do serviço Redis da outra stack
+      REDIS_URL: "redis://tasks.redis_redis:6379"
+
+      # JWT Secret
+      JWT_SECRET: "${JWT_SECRET:-RuGc2mfJ8oJW6giog3RiJCBd5qZmWpSD}"
+
+      # Email Configuration (Gmail SMTP Padrão - Tarefa 6)
+      DEFAULT_SMTP_HOST: "smtp.gmail.com"
+      DEFAULT_SMTP_PORT: "587"
+      DEFAULT_SMTP_SECURE: "false"
+      DEFAULT_SMTP_USER: "${EMAIL_USER:-chatwellpro@gmail.com}"
+      DEFAULT_SMTP_PASS: "${EMAIL_PASS:-xoru ncif szdv brjc}"
+      DEFAULT_FROM_EMAIL: "${EMAIL_FROM:-chatwellpro@gmail.com}"
+      DEFAULT_FROM_NAME: "${EMAIL_FROM_NAME:-Chatwell Pro}"
+
+      # Google OAuth (Configure via Portainer Environment Variables)
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+
+      # WhatsApp API - WAHA (Conexão Padrão - Tarefa 5)
+      WAHA_BASE_URL: "${WAHA_BASE_URL:-https://zap.joinerchat.net}"
+      WAHA_API_KEY: "${WAHA_API_KEY:-CoMeCoH2ki86xkbibnczGqeDgYqxE0p65YEWFiM}"
+      WAHA_SESSION_NAME: "${WAHA_SESSION_NAME:-chatwell-pro}"
+      WAHA_DEFAULT_PHONE: "${WAHA_DEFAULT_PHONE:-380947105869@c.us}"
+
+      # Cron Job Secret (para proteger endpoints de notificações)
+      CRON_SECRET: "${CRON_SECRET:-chatwell-cron-secret-2025}"
+
+      # Next.js
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+      NEXT_PUBLIC_APP_URL: "https://app.chatwell.pro"
+
+    networks:
+      - network_public
+
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        # Traefik Configuration
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_public"
+
+        # HTTP Router
+        - "traefik.http.routers.chatwell.rule=Host(`app.chatwell.pro`)"
+        - "traefik.http.routers.chatwell.entrypoints=websecure"
+        - "traefik.http.routers.chatwell.tls=true"
+        - "traefik.http.routers.chatwell.tls.certresolver=letsencrypt"
+
+        # Service
+        - "traefik.http.services.chatwell.loadbalancer.server.port=3000"
+        - "traefik.http.services.chatwell.loadbalancer.sticky.cookie=true"
+        - "traefik.http.services.chatwell.loadbalancer.sticky.cookie.name=chatwell_session"
+
+        # Middleware - Security Headers
+        - "traefik.http.middlewares.chatwell-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+        - "traefik.http.middlewares.chatwell-headers.headers.sslRedirect=true"
+        - "traefik.http.middlewares.chatwell-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.chatwell-headers.headers.stsIncludeSubdomains=true"
+        - "traefik.http.middlewares.chatwell-headers.headers.stsPreload=true"
+        - "traefik.http.middlewares.chatwell-headers.headers.forceSTSHeader=true"
+
+        # HTTP to HTTPS Redirect
+        - "traefik.http.routers.chatwell-http.rule=Host(`app.chatwell.pro`)"
+        - "traefik.http.routers.chatwell-http.entrypoints=web"
+        - "traefik.http.routers.chatwell-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+        # Apply middlewares
+        - "traefik.http.routers.chatwell.middlewares=chatwell-headers"
+
+    depends_on:
+      - postgres
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  network_public:
+    external: true
+
+volumes:
+  postgres_data:
+    driver: local
